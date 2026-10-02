@@ -5,6 +5,8 @@ import { MargineTag, PraticaCard, StatoBadge, clienteDi } from '../components/sh
 import { Card, Empty, Field, Modal, PageHeader, Progress, Segmented } from '../components/ui'
 import type { Pratica, StatoPratica } from '../data/types'
 import { incassato, STATO_LABEL, totRicavo } from '../lib/calc'
+import { segmentoPratica } from '../lib/segmenti'
+import type { Segmento } from '../data/types'
 import { dayOffset, eur0, fmtDate, uid } from '../lib/format'
 import { useStore } from '../store'
 
@@ -14,6 +16,7 @@ export default function Pratiche() {
   const { db, update } = useStore()
   const nav = useNavigate()
   const [filtro, setFiltro] = useState<Filtro>('attive')
+  const [seg, setSeg] = useState<Segmento | 'tutti'>('tutti')
   const [q, setQ] = useState('')
   const [nuova, setNuova] = useState(false)
 
@@ -21,9 +24,10 @@ export default function Pratiche() {
     const s = q.trim().toLowerCase()
     return db.pratiche
       .filter((p) => (filtro === 'tutte' ? true : filtro === 'attive' ? ['confermata', 'saldata', 'in_viaggio'].includes(p.stato) : p.stato === filtro))
+      .filter((p) => seg === 'tutti' || segmentoPratica(db, p) === seg)
       .filter((p) => !s || p.titolo.toLowerCase().includes(s) || p.codice.includes(s) || p.destinazione.toLowerCase().includes(s) || (clienteDi(db, p)?.nome.toLowerCase().includes(s) ?? false))
       .sort((a, b) => (filtro === 'conclusa' || filtro === 'annullata' ? b.partenza.localeCompare(a.partenza) : a.partenza.localeCompare(b.partenza)))
-  }, [db, filtro, q])
+  }, [db, filtro, q, seg])
 
   const opts: { id: Filtro; label: string }[] = [
     { id: 'attive', label: 'Attive' },
@@ -42,6 +46,7 @@ export default function Pratiche() {
       />
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <Segmented options={opts} value={filtro} onChange={setFiltro} />
+        <Segmented options={[{ id: 'tutti', label: 'Tutti i clienti' }, { id: 'vacanze', label: 'Vacanze' }, { id: 'business', label: 'Professionisti' }]} value={seg} onChange={setSeg} />
         <div className="relative w-full sm:ml-auto sm:w-72">
           <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-mute" />
           <input className="input pl-9" placeholder="Filtra per cliente o destinazione" value={q} onChange={(e) => setQ(e.target.value)} />

@@ -3,6 +3,8 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { Card, CardTitle, PageHeader, Stat } from '../components/ui'
 import { ivaPratica, margine, TIPO_LABEL, totRicavo } from '../lib/calc'
 import { eur0, num, parse } from '../lib/format'
+import { SEGMENTO_LABEL, segmentoPratica } from '../lib/segmenti'
+import type { Segmento } from '../data/types'
 import { useStore } from '../store'
 
 export default function Report() {
@@ -11,6 +13,13 @@ export default function Report() {
   const venduto = reali.reduce((s, p) => s + totRicavo(p), 0)
   const marg = reali.reduce((s, p) => s + margine(p), 0)
   const iva = reali.reduce((s, p) => s + ivaPratica(p), 0)
+
+  const perSegmento = (['vacanze', 'business'] as Segmento[]).map((sg) => {
+    const mie = reali.filter((p) => segmentoPratica(db, p) === sg)
+    const v = mie.reduce((t, p) => t + totRicavo(p), 0)
+    const m = mie.reduce((t, p) => t + margine(p), 0)
+    return { sg, n: mie.length, venduto: v, margine: m, perc: v ? (m / v) * 100 : 0, medio: mie.length ? v / mie.length : 0 }
+  })
 
   const perOperatore = db.operatori.map((o) => {
     const mie = reali.filter((p) => p.operatoreId === o.id)
@@ -47,6 +56,15 @@ export default function Report() {
         <Card>
           <CardTitle sub="Quanto guadagna l’agenzia per tipo di servizio">Margine per tipo</CardTitle>
           <div className="h-56"><ResponsiveContainer width="100%" height="100%"><BarChart data={perTipo} layout="vertical" margin={{ left: 20 }}><CartesianGrid horizontal={false} stroke="#e1e8e6" /><XAxis type="number" {...axis} tickFormatter={(v) => `${v / 1000}k`} /><YAxis type="category" dataKey="nome" {...axis} width={90} /><Tooltip formatter={(v: number) => eur0(v)} cursor={{ fill: '#f4f7f7' }} /><Bar dataKey="margine" fill="#2f7d5b" radius={[0, 4, 4, 0]} /></BarChart></ResponsiveContainer></div>
+        </Card>
+        <Card className="lg:col-span-2">
+          <CardTitle sub="Vacanze e professionisti rendono in modo diverso">Per tipo di cliente</CardTitle>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr><th className="th">Segmento</th><th className="th text-right">Pratiche</th><th className="th text-right">Venduto</th><th className="th text-right">Valore medio</th><th className="th text-right">Margine</th><th className="th text-right">% margine</th></tr></thead>
+              <tbody>{perSegmento.map((r) => <tr key={r.sg}><td className="td font-medium">{SEGMENTO_LABEL[r.sg]}</td><td className="td text-right tabular-nums">{r.n}</td><td className="td text-right tabular-nums">{eur0(r.venduto)}</td><td className="td text-right tabular-nums">{eur0(r.medio)}</td><td className="td text-right tabular-nums">{eur0(r.margine)}</td><td className="td text-right tabular-nums">{num(r.perc, 1)}%</td></tr>)}</tbody>
+            </table>
+          </div>
         </Card>
         <Card className="lg:col-span-2">
           <CardTitle sub="Pratiche confermate o concluse">Per operatore</CardTitle>

@@ -11,13 +11,29 @@ export interface Operatore {
   colore: string
 }
 
+export type Segmento = 'vacanze' | 'business'
+export type CategoriaBusiness = 'manager' | 'imprenditore' | 'sportivo' | 'azienda'
+
 export interface Cliente {
   id: string
   nome: string
-  tipo: 'privato' | 'azienda'
+  /** viaggi per vacanza oppure per professionisti (manager, sportivi, aziende) */
+  segmento: Segmento
+  /** come ci si rivolge al cliente nelle email: "famiglia Rossi", "dott. Ferretti" */
+  saluto: string
   email: string
   tel: string
   citta: string
+  /** solo vacanze: tipo di viaggi preferiti */
+  interessi: string[]
+  /** solo business */
+  categoria?: CategoriaBusiness
+  ruolo?: string
+  organizzazione?: string
+  /** assistente, agente o ufficio che gestisce le prenotazioni */
+  referente?: string
+  /** consenso a ricevere email promozionali (GDPR) */
+  marketing: boolean
   note?: string
 }
 
@@ -87,9 +103,41 @@ export interface Pratica {
   note?: string
 }
 
+export type TemplateId = 'natale' | 'capodanno' | 'blackfriday' | 'early' | 'ponti' | 'lastminute' | 'business' | 'libero'
+export type StatoCampagna = 'bozza' | 'programmata' | 'inviata'
+export type DestinatariSegmento = Segmento | 'tutti'
+
+export interface Campagna {
+  id: string
+  nome: string
+  template: TemplateId
+  oggetto: string
+  testo: string
+  segmento: DestinatariSegmento
+  /** filtro opzionale sugli interessi (solo vacanze) */
+  interesse?: string
+  stato: StatoCampagna
+  data?: string
+  inviati?: number
+  aperture?: number
+  click?: number
+}
+
+export interface Automazione {
+  id: string
+  nome: string
+  descrizione: string
+  quando: string
+  segmento: DestinatariSegmento
+  attiva: boolean
+  inviati30: number
+}
+
 export interface DB {
   operatori: Operatore[]
   clienti: Cliente[]
   fornitori: Fornitore[]
   pratiche: Pratica[]
+  campagne: Campagna[]
+  automazioni: Automazione[]
 }

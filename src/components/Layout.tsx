@@ -1,4 +1,4 @@
-import { BarChart3, Briefcase, CalendarClock, Home, LayoutGrid, Menu, Plane, RotateCcw, Search, Store, Users, X } from 'lucide-react'
+import { BarChart3, Briefcase, CalendarClock, Home, LayoutGrid, Mail, Menu, Plane, RotateCcw, Search, Store, Users, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { scadenze } from '../lib/calc'
@@ -11,6 +11,7 @@ const NAV = [
   { to: '/pratiche', label: 'Pratiche', icon: Briefcase },
   { to: '/scadenzario', label: 'Scadenze', icon: CalendarClock, badge: true },
   { to: '/clienti', label: 'Clienti', icon: Users },
+  { to: '/marketing', label: 'Email marketing', icon: Mail },
   { to: '/fornitori', label: 'Fornitori', icon: Store },
   { to: '/report', label: 'Report', icon: BarChart3 },
 ]

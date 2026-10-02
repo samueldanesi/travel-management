@@ -2,6 +2,7 @@ import { Mail, MessageCircle, Phone } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { Cliente, DB, Pratica } from '../data/types'
 import { incassato, margine, STATO_LABEL, STATO_TONE, totRicavo } from '../lib/calc'
+import { segmentoPratica } from '../lib/segmenti'
 import { cx, daysFromToday, eur0, fmtDate, fmtDateShort, relDays } from '../lib/format'
 import { Badge, Progress } from './ui'
 
@@ -19,7 +20,7 @@ export function Contatti({ c, compact }: { c: Cliente; compact?: boolean }) {
     <div className="flex flex-wrap gap-2">
       <a className={base} href={`tel:${c.tel.replace(/\s/g, '')}`}><Phone size={14} /> Chiama</a>
       <a className={base} href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer"><MessageCircle size={14} /> WhatsApp</a>
-      <a className={base} href={`mailto:${c.email}`}><Mail size={14} /> Email</a>
+      {c.email && <a className={base} href={`mailto:${c.email}`}><Mail size={14} /> Email</a>}
     </div>
   )
 }
@@ -37,7 +38,10 @@ export function PraticaCard({ p, db }: { p: Pratica; db: DB }) {
           <p className="truncate text-[15px] font-semibold text-ink">{p.titolo}</p>
           <p className="mt-0.5 truncate text-xs text-ink-mute">{cli?.nome} · {p.codice}</p>
         </div>
-        <StatoBadge stato={p.stato} />
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <StatoBadge stato={p.stato} />
+          {segmentoPratica(db, p) === 'business' && <Badge tone="blue">Professionista</Badge>}
+        </div>
       </div>
       <div className="mt-3 flex items-center justify-between text-xs">
         <span className="text-ink-soft">{p.stato === 'in_viaggio' ? `Rientro ${fmtDateShort(p.rientro)}` : `Partenza ${fmtDateShort(p.partenza)}`}</span>

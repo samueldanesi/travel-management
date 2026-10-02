@@ -1,5 +1,5 @@
 import { dayOffset } from '../lib/format'
-import type { Cliente, DB, Fornitore, Operatore, Passeggero, Pagamento, Pratica, Regime, Servizio, StatoPratica, StatoServizio, TipoServizio } from './types'
+import type { Automazione, Campagna, Cliente, DB, Fornitore, Operatore, Passeggero, Pagamento, Pratica, Regime, Servizio, StatoPratica, StatoServizio, TipoServizio } from './types'
 
 let n = 0
 const id = (p: string) => `${p}${++n}`
@@ -11,17 +11,28 @@ const operatori: Operatore[] = [
   { id: 'o4', nome: 'Paolo Nardi', ruolo: 'Amministrazione', colore: '#2f6690' },
 ]
 
+const INT = { mare: 'mare', crociere: 'crociere', montagna: 'montagna', arte: 'città d’arte', luna: 'luna di miele', famiglia: 'famiglia', esotico: 'esotico', benessere: 'benessere' }
+
 const clienti: Cliente[] = [
-  { id: 'c1', nome: 'Famiglia Rossi', tipo: 'privato', email: 'luca.rossi@example.com', tel: '+39 333 1200451', citta: 'Lucca', note: 'Viaggia ogni estate ad agosto. Preferisce villaggi con animazione bimbi.' },
-  { id: 'c2', nome: 'Chiara Benedetti', tipo: 'privato', email: 'c.benedetti@example.com', tel: '+39 347 5521983', citta: 'Pisa' },
-  { id: 'c3', nome: 'Andrea Lazzeri e Sofia Fanucchi', tipo: 'privato', email: 'andrea.lazzeri@example.com', tel: '+39 340 7712064', citta: 'Viareggio', note: 'Luna di miele, matrimonio a settembre.' },
-  { id: 'c4', nome: 'Studio Tecnico Martinelli', tipo: 'azienda', email: 'amministrazione@martinelli-studio.example', tel: '+39 0583 440120', citta: 'Lucca', note: 'Trasferte di lavoro e un viaggio premio annuale per i dipendenti.' },
-  { id: 'c5', nome: 'Roberto e Maria Giusti', tipo: 'privato', email: 'giusti.rm@example.com', tel: '+39 339 6620118', citta: 'Capannori', note: 'Over 65, amano le crociere. Non usano email: chiamare.' },
-  { id: 'c6', nome: 'Francesca Orsini', tipo: 'privato', email: 'f.orsini@example.com', tel: '+39 392 0085512', citta: 'Massarosa' },
-  { id: 'c7', nome: 'Gruppo CRAL Ospedale', tipo: 'azienda', email: 'cral@ospedale.example', tel: '+39 0583 998811', citta: 'Lucca', note: 'Gita sociale di gruppo, circa 30 persone.' },
-  { id: 'c8', nome: 'Tommaso Pellegrini', tipo: 'privato', email: 'tommaso.p@example.com', tel: '+39 348 3310927', citta: 'Camaiore' },
-  { id: 'c9', nome: 'Famiglia Bertolucci', tipo: 'privato', email: 'bertolucci.fam@example.com', tel: '+39 335 9014477', citta: 'Altopascio' },
-  { id: 'c10', nome: 'Silvia Marchetti', tipo: 'privato', email: 'silvia.marchetti@example.com', tel: '+39 346 2208835', citta: 'Pietrasanta' },
+  // ——— Viaggi vacanze ———
+  { id: 'c1', nome: 'Famiglia Rossi', segmento: 'vacanze', saluto: 'famiglia Rossi', email: 'luca.rossi@example.com', tel: '+39 333 1200451', citta: 'Lucca', interessi: [INT.mare, INT.famiglia], marketing: true, note: 'Viaggia ogni estate ad agosto. Preferisce villaggi con animazione bimbi.' },
+  { id: 'c2', nome: 'Chiara Benedetti', segmento: 'vacanze', saluto: 'Chiara', email: 'c.benedetti@example.com', tel: '+39 347 5521983', citta: 'Pisa', interessi: [INT.arte, INT.esotico], marketing: true },
+  { id: 'c3', nome: 'Andrea Lazzeri e Sofia Fanucchi', segmento: 'vacanze', saluto: 'Andrea e Sofia', email: 'andrea.lazzeri@example.com', tel: '+39 340 7712064', citta: 'Viareggio', interessi: [INT.luna, INT.esotico, INT.mare], marketing: true, note: 'Luna di miele, matrimonio a settembre.' },
+  { id: 'c5', nome: 'Roberto e Maria Giusti', segmento: 'vacanze', saluto: 'Roberto e Maria', email: '', tel: '+39 339 6620118', citta: 'Capannori', interessi: [INT.crociere], marketing: false, note: 'Over 65, amano le crociere. Non usano email: chiamare.' },
+  { id: 'c6', nome: 'Francesca Orsini', segmento: 'vacanze', saluto: 'Francesca', email: 'f.orsini@example.com', tel: '+39 392 0085512', citta: 'Massarosa', interessi: [INT.arte], marketing: true },
+  { id: 'c7', nome: 'Gruppo CRAL Ospedale', segmento: 'vacanze', saluto: 'amici del CRAL', email: 'cral@ospedale.example', tel: '+39 0583 998811', citta: 'Lucca', interessi: [INT.arte, INT.mare], marketing: true, note: 'Gita sociale di gruppo, circa 30 persone.' },
+  { id: 'c8', nome: 'Tommaso Pellegrini', segmento: 'vacanze', saluto: 'Tommaso e Marta', email: 'tommaso.p@example.com', tel: '+39 348 3310927', citta: 'Camaiore', interessi: [INT.crociere, INT.esotico], marketing: true },
+  { id: 'c9', nome: 'Famiglia Bertolucci', segmento: 'vacanze', saluto: 'famiglia Bertolucci', email: 'bertolucci.fam@example.com', tel: '+39 335 9014477', citta: 'Altopascio', interessi: [INT.mare, INT.famiglia], marketing: false, note: 'Ha chiesto di non ricevere più comunicazioni promozionali.' },
+  { id: 'c10', nome: 'Silvia Marchetti', segmento: 'vacanze', saluto: 'Silvia e Carlo', email: 'silvia.marchetti@example.com', tel: '+39 346 2208835', citta: 'Pietrasanta', interessi: [INT.mare, INT.arte], marketing: true },
+  { id: 'c11', nome: 'Giorgia Ricci', segmento: 'vacanze', saluto: 'Giorgia', email: 'giorgia.ricci@example.com', tel: '+39 349 1187703', citta: 'Lucca', interessi: [INT.benessere, INT.montagna], marketing: true },
+  { id: 'c12', nome: 'Famiglia Santini', segmento: 'vacanze', saluto: 'famiglia Santini', email: 'santini.fam@example.com', tel: '+39 338 4402196', citta: 'Porcari', interessi: [INT.montagna, INT.famiglia], marketing: true },
+  { id: 'c13', nome: 'Lorenzo Papini', segmento: 'vacanze', saluto: 'Lorenzo', email: 'lorenzo.papini@example.com', tel: '+39 345 6639012', citta: 'Pisa', interessi: [INT.esotico, INT.mare], marketing: true },
+  // ——— Viaggi per professionisti ———
+  { id: 'c4', nome: 'Studio Tecnico Martinelli', segmento: 'business', saluto: 'Studio Martinelli', email: 'amministrazione@martinelli-studio.example', tel: '+39 0583 440120', citta: 'Lucca', interessi: [], categoria: 'azienda', ruolo: 'Studio di ingegneria, 6 persone', referente: 'Amministrazione', marketing: true, note: 'Trasferte di lavoro e un viaggio premio annuale per i dipendenti.' },
+  { id: 'c14', nome: 'Davide Ferretti', segmento: 'business', saluto: 'dott. Ferretti', email: 'segreteria.ferretti@example.com', tel: '+39 335 7701234', citta: 'Milano', interessi: [], categoria: 'manager', ruolo: 'Direttore commerciale', organizzazione: 'Gruppo Elettra', referente: 'Sara, assistente', marketing: true, note: 'Business class, tariffe flessibili, hotel 5 stelle vicino alle sedi. Mai voli prima delle 8.' },
+  { id: 'c15', nome: 'Marco Valenti', segmento: 'business', saluto: 'Marco', email: 'agente.valenti@example.com', tel: '+39 340 5509871', citta: 'Firenze', interessi: [], categoria: 'sportivo', ruolo: 'Tennista professionista', organizzazione: 'Staff di 3 persone', referente: 'Luca Fabbri, agente', marketing: true, note: 'Massima riservatezza: nessuna comunicazione sui social. Prenota tramite l’agente, che riceve anche le email.' },
+  { id: 'c16', nome: 'Elisabetta Conti', segmento: 'business', saluto: 'dott.ssa Conti', email: 'e.conti@contimoda.example', tel: '+39 347 8820045', citta: 'Prato', interessi: [], categoria: 'imprenditore', ruolo: 'Amministratore delegato', organizzazione: 'Conti Moda srl', referente: 'Ufficio di presidenza', marketing: true, note: 'Fiere internazionali del settore moda, due o tre all’anno.' },
+  { id: 'c17', nome: 'Nordlab Engineering', segmento: 'business', saluto: 'Nordlab', email: 'viaggi@nordlab.example', tel: '+39 0583 220077', citta: 'Lucca', interessi: [], categoria: 'azienda', ruolo: 'Società di ingegneria, trasferte frequenti', referente: 'Ufficio personale', marketing: true },
 ]
 
 const fornitori: Fornitore[] = [
@@ -210,6 +221,60 @@ export function buildInitialDB(): DB {
       [srv('crociera', 'MSC, 4 notti', 'f4', 590, 720, { pagato: false })],
       [pag('Acconto', 200, -33, -33)],
       { note: 'Annullata dal cliente per motivi di salute. Verificare rimborso assicurativo.' }),
+
+    // ——— Professionisti ———
+    pratica('c14', 'o1', 'Trasferta Singapore — business class', 'Singapore', 'confermata', 19, 5, -12,
+      [pax('Davide', 'Ferretti', 49, 'passaporto', 1900)],
+      [
+        srv('volo', 'ITA Airways Milano–Singapore, business, tariffa flessibile', 'f5', 3900, 4350, { stato: 'emesso', pagato: false, fornitore: 6 }),
+        srv('hotel', 'Hotel 5 stelle Marina Bay, 5 notti, colazione', 'f8', 1640, 1900, { fornitore: 12 }),
+        srv('transfer', 'Autista privato in aeroporto, andata e ritorno', 'f7', 220, 320, { regime: 'intermediazione' }),
+      ],
+      [pag('Saldo', 6570, 5)],
+      { extraUE: true, note: 'Fattura intestata a Gruppo Elettra. Inviare itinerario all’assistente Sara.' }),
+
+    pratica('c15', 'o1', 'Torneo a Melbourne — atleta e staff', 'Australia', 'preventivo', 95, 16, -4,
+      [pax('Marco', 'Valenti', 27, 'passaporto', 1500), pax('Paolo', 'Dini', 41, 'passaporto', 900), pax('Elena', 'Costa', 34, 'passaporto', 1300)],
+      [
+        srv('volo', 'Voli business Milano–Melbourne x3', 'f5', 9600, 10500, { stato: 'opzione', emissione: 3 }),
+        srv('hotel', 'Hotel 5 stelle vicino al centro tennis, 3 camere, 16 notti', 'f8', 11800, 13400, { stato: 'opzione', emissione: 3 }),
+      ],
+      [],
+      { extraUE: true, validita: 5, note: 'Riservatezza massima. Confermare solo con l’agente.' }),
+
+    pratica('c17', 'o4', 'Roadshow clienti — Londra', 'Regno Unito', 'confermata', 12, 3, -20,
+      [pax('Giulio', 'Neri', 45, 'passaporto', 1300), pax('Ilaria', 'Fiore', 38, 'passaporto', 1100), pax('Matteo', 'Luti', 33, 'carta_identita', 900), pax('Anna', 'Serra', 41, 'passaporto', 1700)],
+      [
+        srv('volo', 'Voli Pisa–Londra Heathrow a/r x4', 'f5', 1180, 1290, { stato: 'emesso', pagato: true }),
+        srv('hotel', 'Hotel 4 stelle Paddington, 4 camere, 3 notti', 'f8', 1560, 1830, { fornitore: 5 }),
+      ],
+      [pag('Acconto', 1600, -5, -4), pag('Saldo', 1520, 7)],
+      { extraUE: true }),
+
+    pratica('c16', 'o1', 'Fiera moda — Dubai', 'Emirati Arabi', 'conclusa', -70, 4, -110,
+      [pax('Elisabetta', 'Conti', 52, 'passaporto', 1200), pax('Giorgio', 'Marini', 47, 'passaporto', 1100)],
+      [
+        srv('volo', 'Voli business Milano–Dubai x2', 'f5', 2600, 2900, { stato: 'emesso', pagato: true }),
+        srv('hotel', 'Hotel 5 stelle vicino al quartiere fieristico, 4 notti', 'f8', 1100, 1350, { pagato: true }),
+      ],
+      [pag('Saldo', 4250, -85, -85, 'bonifico')],
+      { extraUE: true }),
   ]
-  return { operatori, clienti, fornitori, pratiche }
+
+  const campagne: Campagna[] = [
+    { id: id('cm'), nome: 'Auguri di Natale 2025', template: 'natale', oggetto: 'Buone feste da Castruccio Viaggi', testo: '', segmento: 'tutti', stato: 'inviata', data: dayOffset(-282), inviati: 15, aperture: 11, click: 2 },
+    { id: id('cm'), nome: 'Early booking estate 2026', template: 'early', oggetto: 'Prenota ora l’estate: sconti fino al 15%', testo: '', segmento: 'vacanze', stato: 'inviata', data: dayOffset(-210), inviati: 12, aperture: 8, click: 4 },
+    { id: id('cm'), nome: 'Settimana bianca e Dolomiti', template: 'libero', oggetto: 'Le Dolomiti vi aspettano', testo: '', segmento: 'vacanze', interesse: INT.montagna, stato: 'inviata', data: dayOffset(-12), inviati: 2, aperture: 2, click: 1 },
+    { id: id('cm'), nome: 'Offerte Natale e Capodanno', template: 'natale', oggetto: '', testo: '', segmento: 'vacanze', stato: 'programmata', data: dayOffset(55) },
+    { id: id('cm'), nome: 'Black Friday viaggi', template: 'blackfriday', oggetto: '', testo: '', segmento: 'vacanze', stato: 'bozza' },
+    { id: id('cm'), nome: 'Pianificazione trasferte primo trimestre', template: 'business', oggetto: '', testo: '', segmento: 'business', stato: 'programmata', data: dayOffset(66) },
+  ]
+  const automazioni: Automazione[] = [
+    { id: id('au'), nome: 'Promemoria di partenza', descrizione: 'Email con orari, documenti da portare e contatto d’emergenza.', quando: '7 giorni prima della partenza', segmento: 'tutti', attiva: true, inviati30: 9 },
+    { id: id('au'), nome: 'Come è andato il viaggio?', descrizione: 'Ringrazia il cliente e chiede una recensione.', quando: '3 giorni dopo il rientro', segmento: 'vacanze', attiva: true, inviati30: 6 },
+    { id: id('au'), nome: 'Riepilogo itinerario e documenti', descrizione: 'Itinerario, ricevute e contatti inviati alla persona di riferimento.', quando: 'Alla conferma della pratica', segmento: 'business', attiva: true, inviati30: 4 },
+    { id: id('au'), nome: 'Auguri di compleanno', descrizione: 'Un biglietto di auguri con un piccolo omaggio sul prossimo viaggio.', quando: 'Il giorno del compleanno', segmento: 'vacanze', attiva: false, inviati30: 0 },
+    { id: id('au'), nome: 'Ci siamo persi di vista?', descrizione: 'Proposta personalizzata a chi non viaggia con noi da 12 mesi.', quando: '12 mesi dall’ultimo viaggio', segmento: 'vacanze', attiva: false, inviati30: 0 },
+  ]
+  return { operatori, clienti, fornitori, pratiche, campagne, automazioni }
 }
