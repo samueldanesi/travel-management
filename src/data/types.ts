@@ -32,7 +32,7 @@ export interface Cliente {
   organizzazione?: string
   /** assistente, agente o ufficio che gestisce le prenotazioni */
   referente?: string
-  /** consenso a ricevere email promozionali (GDPR) */
+  /** consenso a ricevere email promozionali (GDPR); solo clienti vacanze */
   marketing: boolean
   note?: string
 }
@@ -103,9 +103,8 @@ export interface Pratica {
   note?: string
 }
 
-export type TemplateId = 'natale' | 'capodanno' | 'blackfriday' | 'early' | 'ponti' | 'lastminute' | 'business' | 'libero'
+export type TemplateId = 'natale' | 'capodanno' | 'blackfriday' | 'early' | 'ponti' | 'lastminute' | 'libero'
 export type StatoCampagna = 'bozza' | 'programmata' | 'inviata'
-export type DestinatariSegmento = Segmento | 'tutti'
 
 export interface Campagna {
   id: string
@@ -113,8 +112,7 @@ export interface Campagna {
   template: TemplateId
   oggetto: string
   testo: string
-  segmento: DestinatariSegmento
-  /** filtro opzionale sugli interessi (solo vacanze) */
+  /** filtro opzionale sugli interessi: le campagne vanno sempre e solo ai clienti vacanze */
   interesse?: string
   stato: StatoCampagna
   data?: string
@@ -128,7 +126,6 @@ export interface Automazione {
   nome: string
   descrizione: string
   quando: string
-  segmento: DestinatariSegmento
   attiva: boolean
   inviati30: number
 }

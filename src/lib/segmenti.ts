@@ -1,4 +1,4 @@
-import type { CategoriaBusiness, Cliente, DB, DestinatariSegmento, Pratica, Segmento } from '../data/types'
+import type { CategoriaBusiness, Cliente, DB, Pratica, Segmento } from '../data/types'
 
 export const SEGMENTO_LABEL: Record<Segmento, string> = { vacanze: 'Viaggi vacanze', business: 'Viaggi professionisti' }
 export const SEGMENTO_BREVE: Record<Segmento, string> = { vacanze: 'Vacanze', business: 'Professionisti' }
@@ -12,11 +12,9 @@ export const INTERESSI = ['mare', 'crociere', 'montagna', 'città d’arte', 'lu
 
 export const segmentoPratica = (db: DB, p: Pratica): Segmento => db.clienti.find((c) => c.id === p.clienteId)?.segmento ?? 'vacanze'
 
-export const DESTINATARI_LABEL: Record<DestinatariSegmento, string> = { vacanze: 'Clienti vacanze', business: 'Professionisti', tutti: 'Tutti i clienti' }
-
-/** Chi riceverà davvero una campagna: segmento giusto, interesse giusto, consenso e indirizzo email. */
-export function destinatari(clienti: Cliente[], segmento: DestinatariSegmento, interesse?: string) {
-  const inSegmento = clienti.filter((c) => (segmento === 'tutti' || c.segmento === segmento) && (!interesse || c.interessi.includes(interesse)))
-  const ok = inSegmento.filter((c) => c.marketing && c.email)
-  return { ok, esclusi: inSegmento.length - ok.length }
+/** Chi riceverà davvero una campagna: solo clienti vacanze, con l'interesse giusto, il consenso e un indirizzo email. */
+export function destinatari(clienti: Cliente[], interesse?: string) {
+  const vacanze = clienti.filter((c) => c.segmento === 'vacanze' && (!interesse || c.interessi.includes(interesse)))
+  const ok = vacanze.filter((c) => c.marketing && c.email)
+  return { ok, esclusi: vacanze.length - ok.length }
 }

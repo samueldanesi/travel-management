@@ -1,9 +1,9 @@
 import { CalendarDays, Info, MailCheck, MailX, MousePointerClick, Plus, Send } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Badge, Card, Field, Modal, PageHeader, Stat, Tabs } from '../components/ui'
-import type { Campagna, DestinatariSegmento, TemplateId } from '../data/types'
+import type { Campagna, TemplateId } from '../data/types'
 import { CALENDARIO, TEMPLATES, templateDi } from '../lib/marketing'
-import { DESTINATARI_LABEL, INTERESSI, destinatari } from '../lib/segmenti'
+import { INTERESSI, destinatari } from '../lib/segmenti'
 import { cx, daysFromToday, dayOffset, fmtDate, num, relDays, uid } from '../lib/format'
 import { useStore } from '../store'
 
@@ -20,11 +20,11 @@ export default function Marketing() {
   const totInv = conStat.reduce((s, c) => s + (c.inviati ?? 0), 0)
   const aperturaMedia = totInv ? (conStat.reduce((s, c) => s + (c.aperture ?? 0), 0) / totInv) * 100 : 0
   const clickMedio = totInv ? (conStat.reduce((s, c) => s + (c.click ?? 0), 0) / totInv) * 100 : 0
-  const raggiungibili = destinatari(db.clienti, 'tutti')
+  const raggiungibili = destinatari(db.clienti)
 
   const nuova = (template: TemplateId = 'libero', data?: string): Campagna => {
     const t = templateDi(template)
-    return { id: uid('cm'), nome: t.id === 'libero' ? '' : t.label, template: t.id, oggetto: t.oggetto, testo: t.testo, segmento: t.segmento, stato: 'bozza', data }
+    return { id: uid('cm'), nome: t.id === 'libero' ? '' : t.label, template: t.id, oggetto: t.oggetto, testo: t.testo, stato: 'bozza', data }
   }
   const salva = (c: Campagna) => {
     update((d) => ({ ...d, campagne: d.campagne.some((x) => x.id === c.id) ? d.campagne.map((x) => (x.id === c.id ? c : x)) : [c, ...d.campagne] }))
@@ -39,7 +39,7 @@ export default function Marketing() {
     <>
       <PageHeader
         title="Email marketing"
-        subtitle="Newsletter e offerte ai clienti, al momento giusto: Natale, Capodanno, early booking, ponti."
+        subtitle="Newsletter e offerte ai clienti vacanze, al momento giusto: Natale, Capodanno, early booking, ponti."
         actions={<button className="btn-brand" onClick={() => setEditor({ campagna: nuova() })}><Plus size={16} /> Nuova campagna</button>}
       />
       <div className="mb-5 flex items-start gap-2 rounded-lg bg-sky2-soft px-3 py-2.5 text-xs text-sky2">
@@ -67,7 +67,7 @@ export default function Marketing() {
         {tab === 'campagne' && (
           <div className="space-y-3">
             {ordinate.map((c) => {
-              const d = destinatari(db.clienti, c.segmento, c.interesse)
+              const d = destinatari(db.clienti, c.interesse)
               const inv = c.inviati ?? d.ok.length
               return (
                 <button key={c.id} onClick={() => setEditor({ campagna: c })} className="card block w-full p-4 text-left transition hover:border-line-strong active:bg-canvas">
@@ -75,8 +75,7 @@ export default function Marketing() {
                     <div className="min-w-0">
                       <p className="text-[15px] font-semibold">{c.nome}</p>
                       <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                        <Badge tone={c.segmento === 'business' ? 'blue' : 'brand'}>{DESTINATARI_LABEL[c.segmento]}</Badge>
-                        {c.interesse && <Badge>{c.interesse}</Badge>}
+                        <Badge tone="brand">{c.interesse ? `Clienti vacanze · ${c.interesse}` : 'Clienti vacanze'}</Badge>
                         <Badge tone="neutral">{templateDi(c.template).label}</Badge>
                       </div>
                     </div>
@@ -111,7 +110,6 @@ export default function Marketing() {
                     <p className="mt-0.5 text-sm text-ink-soft">{a.descrizione}</p>
                     <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
                       <Badge tone="blue">{a.quando}</Badge>
-                      <Badge>{DESTINATARI_LABEL[a.segmento]}</Badge>
                       {a.attiva && <span className="text-ink-mute">{a.inviati30} inviate negli ultimi 30 giorni</span>}
                     </div>
                   </div>
@@ -134,7 +132,6 @@ export default function Marketing() {
           <div className="space-y-3">
             <p className="text-sm text-ink-soft">I momenti dell’anno in cui conviene scrivere ai clienti. Con un clic prepari la campagna già pronta.</p>
             {CALENDARIO.filter((x) => daysFromToday(x.invio) >= -7).map((x) => {
-              const t = templateDi(x.template)
               const gia = db.campagne.some((c) => c.template === x.template && c.data === x.invio)
               return (
                 <Card key={x.titolo}>
@@ -144,7 +141,7 @@ export default function Marketing() {
                       <div className="min-w-0">
                         <p className="text-[15px] font-semibold">{x.titolo}</p>
                         <p className="text-sm text-ink-soft">{x.nota}</p>
-                        <p className="mt-1 text-xs text-ink-mute">Invio consigliato: <strong>{fmtDate(x.invio)}</strong> ({relDays(x.invio)}) · {DESTINATARI_LABEL[t.segmento]}</p>
+                        <p className="mt-1 text-xs text-ink-mute">Invio consigliato: <strong>{fmtDate(x.invio)}</strong> ({relDays(x.invio)})</p>
                       </div>
                     </div>
                     {gia ? <Badge tone="green">già pianificata</Badge> : <button className="btn-ghost btn-sm" onClick={() => { setTab('campagne'); setEditor({ campagna: { ...nuova(x.template, x.invio), nome: x.titolo } }) }}><Plus size={13} /> Crea campagna</button>}
@@ -167,21 +164,20 @@ function Editor({ campagna, esiste, onClose, onSave, onDelete }: { campagna: Cam
   const t0 = templateDi(campagna.template)
   const [nome, setNome] = useState(campagna.nome)
   const [template, setTemplate] = useState<TemplateId>(campagna.template)
-  const [segmento, setSegmento] = useState<DestinatariSegmento>(campagna.segmento)
   const [interesse, setInteresse] = useState(campagna.interesse ?? '')
   const [oggetto, setOggetto] = useState(campagna.oggetto || t0.oggetto)
   const [testo, setTesto] = useState(campagna.testo || t0.testo)
   const [data, setData] = useState(campagna.data ?? dayOffset(14))
 
-  const d = useMemo(() => destinatari(db.clienti, segmento, interesse || undefined), [db.clienti, segmento, interesse])
+  const d = useMemo(() => destinatari(db.clienti, interesse || undefined), [db.clienti, interesse])
   const esempio = d.ok[0]?.saluto ?? 'famiglia Rossi'
   const completa = nome.trim() && oggetto.trim() && testo.trim() && d.ok.length > 0
   const cambia = (id: TemplateId) => {
     const t = templateDi(id)
-    setTemplate(id); setOggetto(t.oggetto); setTesto(t.testo); setSegmento(t.segmento)
+    setTemplate(id); setOggetto(t.oggetto); setTesto(t.testo)
     if (!nome.trim() || TEMPLATES.some((x) => x.label === nome)) setNome(t.id === 'libero' ? '' : t.label)
   }
-  const base = (): Campagna => ({ ...campagna, nome: nome.trim(), template, segmento, interesse: segmento === 'business' ? undefined : interesse || undefined, oggetto, testo })
+  const base = (): Campagna => ({ ...campagna, nome: nome.trim(), template, interesse: interesse || undefined, oggetto, testo })
 
   return (
     <Modal
@@ -206,19 +202,12 @@ function Editor({ campagna, esiste, onClose, onSave, onDelete }: { campagna: Cam
           <Field label="Modello di partenza">
             <select className="input" value={template} onChange={(e) => cambia(e.target.value as TemplateId)} disabled={sola}>{TEMPLATES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}</select>
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Destinatari">
-              <select className="input" value={segmento} onChange={(e) => { setSegmento(e.target.value as DestinatariSegmento); if (e.target.value === 'business') setInteresse('') }} disabled={sola}>
-                {(Object.keys(DESTINATARI_LABEL) as DestinatariSegmento[]).map((k) => <option key={k} value={k}>{DESTINATARI_LABEL[k]}</option>)}
-              </select>
-            </Field>
-            <Field label="Interesse">
-              <select className="input" value={interesse} onChange={(e) => setInteresse(e.target.value)} disabled={sola || segmento === 'business'}>
-                <option value="">Tutti</option>
-                {INTERESSI.map((i) => <option key={i} value={i}>{i}</option>)}
-              </select>
-            </Field>
-          </div>
+          <Field label="Interesse dei clienti vacanze" hint="Scrivi solo a chi ama un certo tipo di viaggio, oppure a tutti i clienti vacanze.">
+            <select className="input" value={interesse} onChange={(e) => setInteresse(e.target.value)} disabled={sola}>
+              <option value="">Tutti i clienti vacanze</option>
+              {INTERESSI.map((i) => <option key={i} value={i}>{i}</option>)}
+            </select>
+          </Field>
           <div className={cx('rounded-lg px-3 py-2 text-xs', d.ok.length ? 'bg-moss-soft text-moss' : 'bg-rose2-soft text-rose2')}>
             {sola ? <>Inviata a <strong>{campagna.inviati}</strong> destinatari.</> : d.ok.length ? <>Arriverà a <strong>{d.ok.length}</strong> clienti{d.esclusi > 0 && <> · <MailX size={11} className="inline" /> {d.esclusi} esclusi perché senza consenso o senza email</>}</> : 'Nessun destinatario con consenso per questo filtro.'}
           </div>

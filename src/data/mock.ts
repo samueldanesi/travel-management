@@ -28,11 +28,11 @@ const clienti: Cliente[] = [
   { id: 'c12', nome: 'Famiglia Santini', segmento: 'vacanze', saluto: 'famiglia Santini', email: 'santini.fam@example.com', tel: '+39 338 4402196', citta: 'Porcari', interessi: [INT.montagna, INT.famiglia], marketing: true },
   { id: 'c13', nome: 'Lorenzo Papini', segmento: 'vacanze', saluto: 'Lorenzo', email: 'lorenzo.papini@example.com', tel: '+39 345 6639012', citta: 'Pisa', interessi: [INT.esotico, INT.mare], marketing: true },
   // ——— Viaggi per professionisti ———
-  { id: 'c4', nome: 'Studio Tecnico Martinelli', segmento: 'business', saluto: 'Studio Martinelli', email: 'amministrazione@martinelli-studio.example', tel: '+39 0583 440120', citta: 'Lucca', interessi: [], categoria: 'azienda', ruolo: 'Studio di ingegneria, 6 persone', referente: 'Amministrazione', marketing: true, note: 'Trasferte di lavoro e un viaggio premio annuale per i dipendenti.' },
-  { id: 'c14', nome: 'Davide Ferretti', segmento: 'business', saluto: 'dott. Ferretti', email: 'segreteria.ferretti@example.com', tel: '+39 335 7701234', citta: 'Milano', interessi: [], categoria: 'manager', ruolo: 'Direttore commerciale', organizzazione: 'Gruppo Elettra', referente: 'Sara, assistente', marketing: true, note: 'Business class, tariffe flessibili, hotel 5 stelle vicino alle sedi. Mai voli prima delle 8.' },
-  { id: 'c15', nome: 'Marco Valenti', segmento: 'business', saluto: 'Marco', email: 'agente.valenti@example.com', tel: '+39 340 5509871', citta: 'Firenze', interessi: [], categoria: 'sportivo', ruolo: 'Tennista professionista', organizzazione: 'Staff di 3 persone', referente: 'Luca Fabbri, agente', marketing: true, note: 'Massima riservatezza: nessuna comunicazione sui social. Prenota tramite l’agente, che riceve anche le email.' },
-  { id: 'c16', nome: 'Elisabetta Conti', segmento: 'business', saluto: 'dott.ssa Conti', email: 'e.conti@contimoda.example', tel: '+39 347 8820045', citta: 'Prato', interessi: [], categoria: 'imprenditore', ruolo: 'Amministratore delegato', organizzazione: 'Conti Moda srl', referente: 'Ufficio di presidenza', marketing: true, note: 'Fiere internazionali del settore moda, due o tre all’anno.' },
-  { id: 'c17', nome: 'Nordlab Engineering', segmento: 'business', saluto: 'Nordlab', email: 'viaggi@nordlab.example', tel: '+39 0583 220077', citta: 'Lucca', interessi: [], categoria: 'azienda', ruolo: 'Società di ingegneria, trasferte frequenti', referente: 'Ufficio personale', marketing: true },
+  { id: 'c4', nome: 'Studio Tecnico Martinelli', segmento: 'business', saluto: 'Studio Martinelli', email: 'amministrazione@martinelli-studio.example', tel: '+39 0583 440120', citta: 'Lucca', interessi: [], categoria: 'azienda', ruolo: 'Studio di ingegneria, 6 persone', referente: 'Amministrazione', marketing: false, note: 'Trasferte di lavoro e un viaggio premio annuale per i dipendenti.' },
+  { id: 'c14', nome: 'Davide Ferretti', segmento: 'business', saluto: 'dott. Ferretti', email: 'segreteria.ferretti@example.com', tel: '+39 335 7701234', citta: 'Milano', interessi: [], categoria: 'manager', ruolo: 'Direttore commerciale', organizzazione: 'Gruppo Elettra', referente: 'Sara, assistente', marketing: false, note: 'Business class, tariffe flessibili, hotel 5 stelle vicino alle sedi. Mai voli prima delle 8.' },
+  { id: 'c15', nome: 'Marco Valenti', segmento: 'business', saluto: 'Marco', email: 'agente.valenti@example.com', tel: '+39 340 5509871', citta: 'Firenze', interessi: [], categoria: 'sportivo', ruolo: 'Tennista professionista', organizzazione: 'Staff di 3 persone', referente: 'Luca Fabbri, agente', marketing: false, note: 'Massima riservatezza: nessuna comunicazione sui social. Prenota tramite l’agente, che riceve anche le email.' },
+  { id: 'c16', nome: 'Elisabetta Conti', segmento: 'business', saluto: 'dott.ssa Conti', email: 'e.conti@contimoda.example', tel: '+39 347 8820045', citta: 'Prato', interessi: [], categoria: 'imprenditore', ruolo: 'Amministratore delegato', organizzazione: 'Conti Moda srl', referente: 'Ufficio di presidenza', marketing: false, note: 'Fiere internazionali del settore moda, due o tre all’anno.' },
+  { id: 'c17', nome: 'Nordlab Engineering', segmento: 'business', saluto: 'Nordlab', email: 'viaggi@nordlab.example', tel: '+39 0583 220077', citta: 'Lucca', interessi: [], categoria: 'azienda', ruolo: 'Società di ingegneria, trasferte frequenti', referente: 'Ufficio personale', marketing: false },
 ]
 
 const fornitori: Fornitore[] = [
@@ -262,19 +262,17 @@ export function buildInitialDB(): DB {
   ]
 
   const campagne: Campagna[] = [
-    { id: id('cm'), nome: 'Auguri di Natale 2025', template: 'natale', oggetto: 'Buone feste da Castruccio Viaggi', testo: '', segmento: 'tutti', stato: 'inviata', data: dayOffset(-282), inviati: 15, aperture: 11, click: 2 },
-    { id: id('cm'), nome: 'Early booking estate 2026', template: 'early', oggetto: 'Prenota ora l’estate: sconti fino al 15%', testo: '', segmento: 'vacanze', stato: 'inviata', data: dayOffset(-210), inviati: 12, aperture: 8, click: 4 },
-    { id: id('cm'), nome: 'Settimana bianca e Dolomiti', template: 'libero', oggetto: 'Le Dolomiti vi aspettano', testo: '', segmento: 'vacanze', interesse: INT.montagna, stato: 'inviata', data: dayOffset(-12), inviati: 2, aperture: 2, click: 1 },
-    { id: id('cm'), nome: 'Offerte Natale e Capodanno', template: 'natale', oggetto: '', testo: '', segmento: 'vacanze', stato: 'programmata', data: dayOffset(55) },
-    { id: id('cm'), nome: 'Black Friday viaggi', template: 'blackfriday', oggetto: '', testo: '', segmento: 'vacanze', stato: 'bozza' },
-    { id: id('cm'), nome: 'Pianificazione trasferte primo trimestre', template: 'business', oggetto: '', testo: '', segmento: 'business', stato: 'programmata', data: dayOffset(66) },
+    { id: id('cm'), nome: 'Auguri di Natale 2025', template: 'natale', oggetto: 'Buone feste da Castruccio Viaggi', testo: '', stato: 'inviata', data: dayOffset(-282), inviati: 10, aperture: 7, click: 1 },
+    { id: id('cm'), nome: 'Early booking estate 2026', template: 'early', oggetto: 'Prenota ora l’estate: sconti fino al 15%', testo: '', stato: 'inviata', data: dayOffset(-210), inviati: 9, aperture: 6, click: 3 },
+    { id: id('cm'), nome: 'Settimana bianca e Dolomiti', template: 'libero', oggetto: 'Le Dolomiti vi aspettano', testo: '', interesse: INT.montagna, stato: 'inviata', data: dayOffset(-12), inviati: 2, aperture: 2, click: 1 },
+    { id: id('cm'), nome: 'Offerte Natale e Capodanno', template: 'natale', oggetto: '', testo: '', stato: 'programmata', data: dayOffset(55) },
+    { id: id('cm'), nome: 'Black Friday viaggi', template: 'blackfriday', oggetto: '', testo: '', stato: 'bozza' },
   ]
   const automazioni: Automazione[] = [
-    { id: id('au'), nome: 'Promemoria di partenza', descrizione: 'Email con orari, documenti da portare e contatto d’emergenza.', quando: '7 giorni prima della partenza', segmento: 'tutti', attiva: true, inviati30: 9 },
-    { id: id('au'), nome: 'Come è andato il viaggio?', descrizione: 'Ringrazia il cliente e chiede una recensione.', quando: '3 giorni dopo il rientro', segmento: 'vacanze', attiva: true, inviati30: 6 },
-    { id: id('au'), nome: 'Riepilogo itinerario e documenti', descrizione: 'Itinerario, ricevute e contatti inviati alla persona di riferimento.', quando: 'Alla conferma della pratica', segmento: 'business', attiva: true, inviati30: 4 },
-    { id: id('au'), nome: 'Auguri di compleanno', descrizione: 'Un biglietto di auguri con un piccolo omaggio sul prossimo viaggio.', quando: 'Il giorno del compleanno', segmento: 'vacanze', attiva: false, inviati30: 0 },
-    { id: id('au'), nome: 'Ci siamo persi di vista?', descrizione: 'Proposta personalizzata a chi non viaggia con noi da 12 mesi.', quando: '12 mesi dall’ultimo viaggio', segmento: 'vacanze', attiva: false, inviati30: 0 },
+    { id: id('au'), nome: 'Promemoria di partenza', descrizione: 'Email con orari, documenti da portare e contatto d’emergenza.', quando: '7 giorni prima della partenza', attiva: true, inviati30: 9 },
+    { id: id('au'), nome: 'Come è andato il viaggio?', descrizione: 'Ringrazia il cliente e chiede una recensione.', quando: '3 giorni dopo il rientro', attiva: true, inviati30: 6 },
+    { id: id('au'), nome: 'Auguri di compleanno', descrizione: 'Un biglietto di auguri con un piccolo omaggio sul prossimo viaggio.', quando: 'Il giorno del compleanno', attiva: false, inviati30: 0 },
+    { id: id('au'), nome: 'Ci siamo persi di vista?', descrizione: 'Proposta personalizzata a chi non viaggia con noi da 12 mesi.', quando: '12 mesi dall’ultimo viaggio', attiva: false, inviati30: 0 },
   ]
   return { operatori, clienti, fornitori, pratiche, campagne, automazioni }
 }

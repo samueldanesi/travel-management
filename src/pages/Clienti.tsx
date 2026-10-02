@@ -146,7 +146,7 @@ function NuovoCliente({ open, iniziale, onClose, onAdd }: { open: boolean; inizi
   const salva = () => {
     onAdd({
       id: uid('c'), nome: nome.trim(), segmento, saluto: saluto.trim() || nome.trim().split(' ')[0], tel: tel.trim(), email: email.trim(), citta: citta.trim(),
-      interessi: biz ? [] : interessi, marketing: marketing && !!email.trim(),
+      interessi: biz ? [] : interessi, marketing: !biz && marketing && !!email.trim(),
       ...(biz ? { categoria, ruolo: ruolo.trim() || undefined, organizzazione: org.trim() || undefined, referente: referente.trim() || undefined } : {}),
     })
     setNome(''); setSaluto(''); setTel(''); setEmail(''); setCitta(''); setInteressi([]); setRuolo(''); setOrg(''); setReferente(''); setMarketing(false)
@@ -191,7 +191,7 @@ function NuovoCliente({ open, iniziale, onClose, onAdd }: { open: boolean; inizi
             </div>
           </Field>
         )}
-        <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={marketing} disabled={!email.trim()} onChange={(e) => setMarketing(e.target.checked)} /> <span>Ha dato il consenso a ricevere email promozionali<span className="block text-[11px] text-ink-mute">Senza consenso non riceverà le campagne di email marketing.</span></span></label>
+        {!biz && <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={marketing} disabled={!email.trim()} onChange={(e) => setMarketing(e.target.checked)} /> <span>Ha dato il consenso a ricevere email promozionali<span className="block text-[11px] text-ink-mute">Senza consenso non riceverà le campagne di email marketing.</span></span></label>}
       </div>
     </Modal>
   )

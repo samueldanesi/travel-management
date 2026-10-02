@@ -49,7 +49,7 @@ export default function ClienteDetail() {
             {!biz && c.interessi.length > 0 && <div className="mt-3 flex flex-wrap gap-1">{c.interessi.map((i) => <Badge key={i}>{i}</Badge>)}</div>}
             <dl className="mt-4 space-y-1 text-xs text-ink-soft"><div>📞 {c.tel}</div><div>✉️ {c.email || 'nessuna email'}</div></dl>
           </Card>
-          <Card>
+          {!biz && <Card>
             <CardTitle sub="Obbligatorio per inviare newsletter e offerte">Email marketing</CardTitle>
             <div className="flex items-center justify-between gap-3">
               <span className={`flex items-center gap-2 text-sm ${c.marketing && c.email ? 'text-moss' : 'text-ink-soft'}`}>
@@ -58,7 +58,7 @@ export default function ClienteDetail() {
               </span>
               <button className="btn-ghost btn-sm" disabled={!c.email} onClick={() => set({ marketing: !c.marketing })}>{c.marketing ? 'Revoca' : 'Registra consenso'}</button>
             </div>
-          </Card>
+          </Card>}
         </div>
       </div>
     </>
