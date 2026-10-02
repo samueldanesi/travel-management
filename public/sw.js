@@ -1,5 +1,5 @@
 // Service worker minimale: l'app si apre anche senza rete (dati demo salvati nel browser).
-const CACHE = 'castruccio-v1'
+const CACHE = 'castruccio-v2'
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './manifest.webmanifest'])).then(() => self.skipWaiting()))
@@ -16,7 +16,7 @@ self.addEventListener('fetch', (e) => {
   const req = e.request
   if (req.method !== 'GET' || !req.url.startsWith('http')) return
   e.respondWith(
-    fetch(req)
+    fetch(req, { cache: 'no-cache' })
       .then((res) => {
         if (res.ok) {
           const copy = res.clone()
