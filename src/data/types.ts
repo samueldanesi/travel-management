@@ -90,6 +90,15 @@ export interface Pagamento {
   metodo?: 'contanti' | 'bonifico' | 'carta' | 'pos'
 }
 
+export interface InvioPreventivo {
+  id: string
+  data: string
+  a: string
+  cc?: string
+  oggetto: string
+  testo: string
+}
+
 export interface Pratica {
   id: string
   codice: string
@@ -104,6 +113,13 @@ export interface Pratica {
   rientro: string
   creata: string
   validitaPreventivo?: string
+  /** email del preventivo inviate al cliente */
+  invii?: InvioPreventivo[]
+  /** affare chiuso: il preventivo è stato accettato e la pratica è confermata */
+  chiusaIl?: string
+  /** affare perso: il cliente non ha accettato */
+  persoIl?: string
+  motivoPersa?: string
   /** chi prenota e paga per tutti, se non è il cliente della pratica (id passeggero): tipico di sportivi e staff */
   paganteId?: string
   passeggeri: Passeggero[]

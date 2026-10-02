@@ -15,6 +15,9 @@ export const MESI_LUNGHI = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 
 /** Pratiche che contano come venduto */
 export const venduta = (p: Pratica) => p.stato === 'confermata' || p.stato === 'saldata' || p.stato === 'in_viaggio' || p.stato === 'conclusa'
 
+/** Il fatturato conta dal giorno in cui l'affare si chiude, non da quando è stato creato il preventivo */
+export const dataVendita = (p: Pratica) => p.chiusaIl ?? p.creata
+
 /** Serie mensile: storico importato + pratiche create dopo l'ultima data coperta dallo storico. */
 export function serie(db: DB): PuntoMese[] {
   const m = new Map<string, PuntoMese>()
@@ -29,8 +32,8 @@ export function serie(db: DB): PuntoMese[] {
     x.margine += s.margine ?? 0
   }
   for (const p of db.pratiche) {
-    if (!venduta(p) || p.creata <= db.storicoFino) continue
-    const d = parse(p.creata)
+    if (!venduta(p) || dataVendita(p) <= db.storicoFino) continue
+    const d = parse(dataVendita(p))
     const x = get(d.getFullYear(), d.getMonth() + 1)
     x.fatturato += totRicavo(p)
     x.margine += margine(p)

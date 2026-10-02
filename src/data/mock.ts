@@ -1,5 +1,5 @@
 import { dayOffset } from '../lib/format'
-import type { Automazione, Campagna, Carta, Cliente, DB, Fornitore, Operatore, Passeggero, Pagamento, Pratica, Regime, Servizio, StatoPratica, StatoServizio, StoricoMese, TipoServizio } from './types'
+import type { InvioPreventivo, Automazione, Campagna, Carta, Cliente, DB, Fornitore, Operatore, Passeggero, Pagamento, Pratica, Regime, Servizio, StatoPratica, StatoServizio, StoricoMese, TipoServizio } from './types'
 
 let n = 0
 const id = (p: string) => `${p}${++n}`
@@ -87,12 +87,20 @@ const pag = (etichetta: string, importo: number, scadenza: number, pagato?: numb
   metodo: pagato !== undefined ? metodo : undefined,
 })
 
+const invio = (clienteId: string, titolo: string, giorni: number): InvioPreventivo => ({
+  id: id('iv'),
+  data: dayOffset(giorni),
+  a: clienti.find((c) => c.id === clienteId)?.email ?? '',
+  oggetto: `Preventivo: ${titolo}`,
+  testo: 'Preventivo inviato al cliente.',
+})
+
 let seq = 0
 const pratica = (
   clienteId: string, operatoreId: string, titolo: string, destinazione: string, stato: StatoPratica,
   partenza: number, notti: number, creata: number,
   passeggeri: Passeggero[], servizi: Servizio[], pagamenti: Pagamento[],
-  o: { extraUE?: boolean; validita?: number; note?: string; pagante?: string } = {}
+  o: { extraUE?: boolean; validita?: number; note?: string; pagante?: string; invii?: number[]; chiusa?: number; perso?: number; motivo?: string } = {}
 ): Pratica => ({
   id: id('pr'),
   codice: `2026/${String(140 + ++seq * 3).padStart(4, '0')}`,
@@ -103,6 +111,10 @@ const pratica = (
   creata: dayOffset(creata),
   validitaPreventivo: o.validita !== undefined ? dayOffset(o.validita) : undefined,
   paganteId: o.pagante,
+  invii: o.invii?.map((g) => invio(clienteId, titolo, g)),
+  chiusaIl: o.chiusa !== undefined ? dayOffset(o.chiusa) : undefined,
+  persoIl: o.perso !== undefined ? dayOffset(o.perso) : undefined,
+  motivoPersa: o.motivo,
   passeggeri, servizi, pagamenti,
   note: o.note,
 })
@@ -191,7 +203,7 @@ export function buildInitialDB(): DB {
         srv('volo', 'Voli per Copenaghen a/r', 'f5', 520, 570, { stato: 'opzione', emissione: 4 }),
       ],
       [],
-      { validita: 4, extraUE: true }),
+      { validita: 4, extraUE: true, invii: [-2] }),
 
     pratica('c10', 'o2', 'Grecia — isole Cicladi', 'Grecia', 'preventivo', 95, 8, -2,
       [pax('Silvia', 'Marchetti', 38, 'carta_identita', 1000), pax('Carlo', 'Marchetti', 40, 'carta_identita', 1000)],
@@ -200,7 +212,7 @@ export function buildInitialDB(): DB {
         srv('volo', 'Voli Pisa–Atene a/r', 'f5', 460, 510, { stato: 'opzione', emissione: 8 }),
       ],
       [],
-      { validita: 9 }),
+      { validita: 9, invii: [-1] }),
 
     pratica('c1', 'o2', 'Weekend Dolomiti (Pasqua scorsa)', 'Trentino', 'conclusa', -140, 4, -190,
       [pax('Luca', 'Rossi', 42, 'carta_identita', 900), pax('Anna', 'Rossi', 40, 'carta_identita', 700)],
@@ -221,6 +233,12 @@ export function buildInitialDB(): DB {
       ],
       [pag('Acconto', 900, -40, -40), pag('Saldo', 1000, -10, -9)]),
 
+    pratica('c13', 'o2', 'Safari in Kenya', 'Kenya', 'annullata', 70, 9, -25,
+      [pax('Lorenzo', 'Papini', 34, 'passaporto', 1300)],
+      [srv('pacchetto', 'Safari 9 giorni con voli inclusi', 'f9', 3100, 3650, { stato: 'opzione' })],
+      [],
+      { extraUE: true, invii: [-24], perso: -8, motivo: 'Ha scelto un altro operatore (prezzo più basso)' }),
+
     pratica('c9', 'o4', 'Mini crociera Barcellona', 'Spagna', 'annullata', 40, 4, -35,
       [pax('Paola', 'Bertolucci', 44, 'carta_identita', 700)],
       [srv('crociera', 'MSC, 4 notti', 'f4', 590, 720, { pagato: false })],
@@ -228,7 +246,7 @@ export function buildInitialDB(): DB {
       { note: 'Annullata dal cliente per motivi di salute. Verificare rimborso assicurativo.' }),
 
     // ——— Professionisti ———
-    pratica('c14', 'o1', 'Trasferta Singapore — business class', 'Singapore', 'confermata', 19, 5, -1,
+    pratica('c14', 'o1', 'Trasferta Singapore — business class', 'Singapore', 'confermata', 19, 5, -4,
       [pax('Davide', 'Ferretti', 49, 'passaporto', 1900)],
       [
         srv('volo', 'ITA Airways Milano–Singapore, business, tariffa flessibile', 'f5', 3900, 4350, { stato: 'emesso', carta: 'k3', pagatoIl: -1 }),
@@ -236,7 +254,7 @@ export function buildInitialDB(): DB {
         srv('transfer', 'Autista privato in aeroporto, andata e ritorno', 'f7', 220, 320, { regime: 'intermediazione' }),
       ],
       [pag('Saldo', 6570, 5)],
-      { extraUE: true, note: 'Fattura intestata a Gruppo Elettra. Inviare itinerario all’assistente Sara.' }),
+      { extraUE: true, invii: [-4], chiusa: -1, note: 'Fattura intestata a Gruppo Elettra. Inviare itinerario all’assistente Sara.' }),
 
     (() => {
       const team = [

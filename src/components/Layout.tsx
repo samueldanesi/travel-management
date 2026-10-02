@@ -1,4 +1,4 @@
-import { Briefcase, CalendarClock, Home, LayoutGrid, Mail, Menu, Plane, RotateCcw, Search, Users, X } from 'lucide-react'
+import { Briefcase, CalendarClock, FileText, Home, LayoutGrid, Mail, Menu, Plane, RotateCcw, Search, Sun, Users, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { scadenze } from '../lib/calc'
@@ -7,11 +7,13 @@ import { useStore } from '../store'
 import { Badge } from './ui'
 
 const NAV = [
-  { to: '/', label: 'Oggi', icon: Home, end: true },
-  { to: '/pratiche', label: 'Pratiche', icon: Briefcase },
-  { to: '/scadenzario', label: 'Scadenze', icon: CalendarClock, badge: true },
-  { to: '/clienti', label: 'Clienti', icon: Users },
-  { to: '/marketing', label: 'Email marketing', icon: Mail },
+  { to: '/', label: 'Oggi', short: 'Oggi', icon: Home, end: true },
+  { to: '/pratiche/vacanze', label: 'Pratiche vacanze', short: 'Vacanze', icon: Sun },
+  { to: '/pratiche/professionisti', label: 'Pratiche professionisti', short: 'Professionisti', icon: Briefcase },
+  { to: '/preventivi', label: 'Preventivi', short: 'Preventivi', icon: FileText },
+  { to: '/scadenzario', label: 'Scadenze', short: 'Scadenze', icon: CalendarClock, badge: true },
+  { to: '/clienti', label: 'Clienti', short: 'Clienti', icon: Users },
+  { to: '/marketing', label: 'Email marketing', short: 'Email', icon: Mail },
 ]
 // Sul telefono: 4 voci in basso + "Altro" per il resto
 const BOTTOM = NAV.slice(0, 4)
@@ -126,12 +128,13 @@ export default function Layout() {
           {BOTTOM.map((it) => (
             <NavLink key={it.to} to={it.to} end={it.end} className={({ isActive }) => cx('relative flex flex-col items-center gap-0.5 py-2 text-[10.5px] font-medium', isActive ? 'text-brand' : 'text-ink-mute')}>
               <it.icon size={21} strokeWidth={1.8} />
-              {it.label}
+              {it.short}
               {it.badge && urgenti > 0 && <span className="absolute right-[26%] top-1 rounded-full bg-rose2 px-1.5 text-[9px] font-bold leading-4 text-white">{urgenti}</span>}
             </NavLink>
           ))}
-          <button onClick={() => setMore(true)} className="flex flex-col items-center gap-0.5 py-2 text-[10.5px] font-medium text-ink-mute">
+          <button onClick={() => setMore(true)} className="relative flex flex-col items-center gap-0.5 py-2 text-[10.5px] font-medium text-ink-mute">
             <LayoutGrid size={21} strokeWidth={1.8} />
+            {urgenti > 0 && <span className="absolute right-[26%] top-1 rounded-full bg-rose2 px-1.5 text-[9px] font-bold leading-4 text-white">{urgenti}</span>}
             Altro
           </button>
         </div>

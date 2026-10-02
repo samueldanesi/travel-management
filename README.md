@@ -7,7 +7,8 @@ I dati sono **fittizi e salvati solo nel browser** (localStorage): è una demo, 
 
 ## Cosa fa
 
-- **Pratiche**: il viaggio venduto, con passeggeri, servizi (volo, hotel, crociera…) e piano incassi
+- **Pratiche vacanze** e **pratiche professionisti**, in due sezioni: il viaggio venduto, con passeggeri, servizi (volo, hotel, crociera…) e piano incassi
+- **Preventivi**: invio email al cliente, poi la pratica si completa e si chiude l'affare (o si segna come perso)
 - **Margine e IVA** per pratica (regime 74-ter sul margine vs intermediazione), stima indicativa
 - **Scadenzario unico**: incassi dai clienti, pagamenti ai fornitori, opzioni/emissioni, documenti, partenze
 - **Controllo documenti**: passaporto con validità insufficiente, carta d'identità dove serve il passaporto

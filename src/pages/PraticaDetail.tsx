@@ -1,10 +1,12 @@
-import { AlertTriangle, ArrowLeft, Check, CreditCard, Pencil, Plus, Printer, Trash2, Users } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Check, CircleCheck, CreditCard, Mail, Pencil, Plus, Printer, Send, Trash2, Users } from 'lucide-react'
 import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
+import { AffarePersoModal, EmailPreventivoModal } from '../components/preventivi'
 import { Contatti, clienteDi } from '../components/shared'
 import { Avatar, Badge, Card, CardTitle, Empty, Field, Modal, PageHeader, Progress, Stat, Tabs } from '../components/ui'
 import type { Passeggero, Pagamento, Pratica, Servizio, StatoServizio, TipoServizio } from '../data/types'
 import { mascherata, scopertoCarte } from '../lib/finanza'
+import { statoInvio, ultimoInvio } from '../lib/preventivi'
 import { daIncassare, incassato, ivaPratica, ivaServizio, margine, marginePerc, problemiDocumenti, scopertoPiano, STATO_LABEL, STATO_ORDER, TIPO_LABEL, totCosto, totRicavo } from '../lib/calc'
 import { cx, dayOffset, daysFromToday, eur, eur0, fmtDate, num, relDays, uid } from '../lib/format'
 import { useStore } from '../store'
@@ -16,7 +18,9 @@ export default function PraticaDetail() {
   const { db, updatePratica } = useStore()
   const p = db.pratiche.find((x) => x.id === id)
   const [tab, setTab] = useState<Tab>('servizi')
-  if (!p) return <Navigate to="/pratiche" replace />
+  const [email, setEmail] = useState(false)
+  const [perso, setPerso] = useState(false)
+  if (!p) return <Navigate to="/pratiche/vacanze" replace />
   const cli = clienteDi(db, p)
   const op = db.operatori.find((o) => o.id === p.operatoreId)
   const upd = (fn: (p: Pratica) => Pratica) => updatePratica(p.id, fn)
@@ -24,10 +28,21 @@ export default function PraticaDetail() {
   const scaduti = p.pagamenti.filter((x) => !x.incassatoIl && daysFromToday(x.scadenza) < 0)
   const scoperto = scopertoPiano(p)
   const tot = totRicavo(p)
+  const business = cli?.segmento === 'business'
+  const sezione = business ? '/pratiche/professionisti' : '/pratiche/vacanze'
+  const ult = ultimoInvio(p)
+
+  const chiudiAffare = () => {
+    const mancano = [p.passeggeri.length === 0 && 'i passeggeri', p.servizi.length === 0 && 'i servizi', p.pagamenti.length === 0 && 'il piano di incassi'].filter(Boolean)
+    if (mancano.length && !confirm(`Mancano ancora ${mancano.join(', ')}. Chiudere comunque l’affare? Potrai completarli dopo.`)) return
+    upd((x) => ({ ...x, stato: 'confermata', chiusaIl: dayOffset(0), persoIl: undefined, motivoPersa: undefined }))
+  }
+  const cambiaStato = (nuovo: Pratica['stato']) =>
+    upd((x) => ({ ...x, stato: nuovo, chiusaIl: x.stato === 'preventivo' && ['confermata', 'saldata', 'in_viaggio', 'conclusa'].includes(nuovo) ? dayOffset(0) : x.chiusaIl }))
 
   return (
     <>
-      <Link to="/pratiche" className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-ink-soft hover:text-ink"><ArrowLeft size={13} /> Pratiche</Link>
+      <Link to={sezione} className="mb-3 inline-flex items-center gap-1 text-xs font-medium text-ink-soft hover:text-ink"><ArrowLeft size={13} /> {business ? 'Pratiche professionisti' : 'Pratiche vacanze'}</Link>
       <PageHeader
         title={p.titolo}
         subtitle={<>{p.codice} · {p.destinazione} · {fmtDate(p.partenza)} → {fmtDate(p.rientro)} · {p.passeggeri.length} pax</>}
@@ -35,13 +50,51 @@ export default function PraticaDetail() {
       />
 
       <div className="mb-5 flex flex-wrap items-center gap-3">
-        <select className="input w-auto" value={p.stato} onChange={(e) => upd((x) => ({ ...x, stato: e.target.value as Pratica['stato'] }))} aria-label="Stato pratica">
+        <select className="input w-auto" value={p.stato} onChange={(e) => cambiaStato(e.target.value as Pratica['stato'])} aria-label="Stato pratica">
           {STATO_ORDER.map((s) => <option key={s} value={s}>{STATO_LABEL[s]}</option>)}
         </select>
         {cli && <Link to={`/clienti/${cli.id}`} className="text-sm font-medium hover:text-brand">{cli.nome}</Link>}
         {op && <span className="flex items-center gap-1.5 text-xs text-ink-mute"><Avatar name={op.nome} color={op.colore} size={22} /> {op.nome}</span>}
       </div>
       {cli && <div className="mb-5"><Contatti c={cli} compact /></div>}
+
+      {p.stato === 'preventivo' && (
+        <section className="mb-5 rounded-xl border border-amber2/30 bg-amber2-soft/60 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="flex items-center gap-2 text-[15px] font-semibold text-ink"><Mail size={16} className="text-amber2" /> Preventivo aperto</p>
+              <p className="mt-0.5 text-sm text-ink-soft">
+                {p.validitaPreventivo ? <>Valido fino al <strong>{fmtDate(p.validitaPreventivo)}</strong> ({relDays(p.validitaPreventivo)}). </> : null}
+                {ult ? <>Inviato il {fmtDate(ult.data)} a {ult.a}.</> : statoInvio(p) === 'da_inviare' ? 'Non ancora inviato al cliente.' : null}
+              </p>
+              <p className="mt-1 text-xs text-ink-mute">1. Aggiungi servizi e passeggeri · 2. Invia il preventivo · 3. Quando il cliente accetta, chiudi l’affare.</p>
+              <label className="mt-2 flex items-center gap-2 text-xs text-ink-soft">
+                Valido fino al
+                <input type="date" className="input w-auto py-1 text-xs" value={p.validitaPreventivo ?? ''} min={dayOffset(0)} onChange={(e) => upd((x) => ({ ...x, validitaPreventivo: e.target.value || undefined }))} />
+              </label>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button className="btn-ghost" onClick={() => setEmail(true)}><Send size={15} /> {ult ? 'Invia di nuovo' : 'Invia email'}</button>
+              <button className="btn-brand" onClick={chiudiAffare}><CircleCheck size={15} /> Affare chiuso</button>
+              <button className="btn-ghost text-rose2" onClick={() => setPerso(true)}>Affare perso</button>
+            </div>
+          </div>
+          {p.invii && p.invii.length > 0 && (
+            <ul className="mt-3 space-y-1 border-t border-amber2/20 pt-3 text-xs text-ink-soft">
+              {[...p.invii].reverse().map((iv) => <li key={iv.id}>✉️ {fmtDate(iv.data)} · a {iv.a}{iv.cc ? ` (cc ${iv.cc})` : ''} · “{iv.oggetto}”</li>)}
+            </ul>
+          )}
+        </section>
+      )}
+      {p.chiusaIl && p.stato !== 'preventivo' && p.stato !== 'annullata' && (
+        <p className="mb-5 flex items-center gap-2 rounded-lg bg-moss-soft px-3 py-2 text-sm text-moss"><CircleCheck size={16} /> Affare chiuso il {fmtDate(p.chiusaIl)}{p.invii?.length ? ` · preventivo inviato il ${fmtDate(p.invii[0].data)}` : ''}</p>
+      )}
+      {p.persoIl && (
+        <p className="mb-5 flex flex-wrap items-center gap-2 rounded-lg bg-rose2-soft px-3 py-2 text-sm text-rose2">
+          Affare perso il {fmtDate(p.persoIl)}{p.motivoPersa ? `: ${p.motivoPersa}` : ''}
+          <button className="ml-auto text-xs font-medium underline" onClick={() => upd((x) => ({ ...x, stato: 'preventivo', persoIl: undefined, motivoPersa: undefined, validitaPreventivo: dayOffset(7) }))}>Riapri il preventivo</button>
+        </p>
+      )}
       {p.passeggeri.length > 1 && (
         <label className="mb-5 flex flex-wrap items-center gap-2 rounded-lg border border-line bg-white px-3 py-2 text-sm">
           <Users size={15} className="text-ink-mute" />
@@ -94,6 +147,8 @@ export default function PraticaDetail() {
           </Card>
         )}
       </div>
+      {email && <EmailPreventivoModal key="email" p={p} onClose={() => setEmail(false)} onSent={(iv) => { upd((x) => ({ ...x, invii: [...(x.invii ?? []), iv] })); setEmail(false) }} />}
+      {perso && <AffarePersoModal onClose={() => setPerso(false)} onConfirm={(motivo) => { upd((x) => ({ ...x, stato: 'annullata', persoIl: dayOffset(0), motivoPersa: motivo })); setPerso(false) }} />}
     </>
   )
 }

@@ -253,7 +253,7 @@ export default function Dashboard() {
         </Card>
 
         <section className="lg:col-span-2">
-          <h2 className="mb-3 text-[15px] font-semibold">Preventivi in attesa</h2>
+          <div className="mb-3 flex items-center justify-between"><h2 className="text-[15px] font-semibold">Preventivi in attesa</h2><Link to="/preventivi" className="flex items-center gap-1 text-xs font-medium text-brand">Tutti <ArrowRight size={12} /></Link></div>
           {preventivi.length === 0 ? <Empty>Nessun preventivo aperto.</Empty> : (
             <Card pad={false}>
               <ul className="divide-y divide-line">
