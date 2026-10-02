@@ -164,6 +164,14 @@ export interface StoricoMese {
   margine?: number
 }
 
+/** Rinnovo o scadenza propria dell'agenzia: polizze, garanzie, firma digitale… */
+export interface Rinnovo {
+  id: string
+  titolo: string
+  scadenza?: string
+  note?: string
+}
+
 export interface DB {
   operatori: Operatore[]
   clienti: Cliente[]
@@ -175,4 +183,7 @@ export interface DB {
   storico: StoricoMese[]
   /** ultimo giorno coperto dallo storico importato: dopo questa data il fatturato si calcola dalle pratiche */
   storicoFino: string
+  /** id degli adempimenti fiscali già eseguiti */
+  obblighiFatti: string[]
+  rinnovi: Rinnovo[]
 }

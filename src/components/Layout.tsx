@@ -1,4 +1,4 @@
-import { BarChart3, Briefcase, CalendarClock, Home, LayoutGrid, Mail, Menu, Plane, RotateCcw, Search, Store, Users, X } from 'lucide-react'
+import { Briefcase, CalendarClock, Home, LayoutGrid, Mail, Menu, Plane, RotateCcw, Scale, Search, Store, Users, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { scadenze } from '../lib/calc'
@@ -13,7 +13,7 @@ const NAV = [
   { to: '/clienti', label: 'Clienti', icon: Users },
   { to: '/marketing', label: 'Email marketing', icon: Mail },
   { to: '/fornitori', label: 'Fornitori', icon: Store },
-  { to: '/report', label: 'Report', icon: BarChart3 },
+  { to: '/obblighi', label: 'Obblighi e normative', icon: Scale },
 ]
 // Sul telefono: 4 voci in basso + "Altro" per il resto
 const BOTTOM = NAV.slice(0, 4)

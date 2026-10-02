@@ -7,7 +7,7 @@ import Fornitori from './pages/Fornitori'
 import Marketing from './pages/Marketing'
 import PraticaDetail from './pages/PraticaDetail'
 import Pratiche from './pages/Pratiche'
-import Report from './pages/Report'
+import Obblighi from './pages/Obblighi'
 import Scadenzario from './pages/Scadenzario'
 
 export default function App() {
@@ -22,7 +22,7 @@ export default function App() {
         <Route path="clienti/:id" element={<ClienteDetail />} />
         <Route path="marketing" element={<Marketing />} />
         <Route path="fornitori" element={<Fornitori />} />
-        <Route path="report" element={<Report />} />
+        <Route path="obblighi" element={<Obblighi />} />
         <Route path="*" element={<Dashboard />} />
       </Route>
     </Routes>

@@ -3,7 +3,7 @@ import type { DB, Pratica } from './data/types'
 import { buildInitialDB } from './data/mock'
 import { iso, TODAY } from './lib/format'
 
-const KEY = 'castruccio-viaggi-demo-v3'
+const KEY = 'castruccio-viaggi-demo-v4'
 
 interface Persisted {
   day: string
