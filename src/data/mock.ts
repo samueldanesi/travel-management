@@ -1,5 +1,5 @@
 import { dayOffset } from '../lib/format'
-import type { Automazione, Campagna, Cliente, DB, Fornitore, Operatore, Passeggero, Pagamento, Pratica, Regime, Servizio, StatoPratica, StatoServizio, TipoServizio } from './types'
+import type { Automazione, Campagna, Carta, Cliente, DB, Fornitore, Operatore, Passeggero, Pagamento, Pratica, Regime, Servizio, StatoPratica, StatoServizio, StoricoMese, TipoServizio } from './types'
 
 let n = 0
 const id = (p: string) => `${p}${++n}`
@@ -59,7 +59,7 @@ const pax = (nome: string, cognome: string, anni: number, doc: 'passaporto' | 'c
 
 const srv = (
   tipo: TipoServizio, descrizione: string, fornitoreId: string, costo: number, ricavo: number,
-  o: { regime?: Regime; stato?: StatoServizio; emissione?: number; fornitore?: number; pagato?: boolean } = {}
+  o: { regime?: Regime; stato?: StatoServizio; emissione?: number; fornitore?: number; pagato?: boolean; carta?: string; pagatoIl?: number; pax?: string[]; pagante?: string } = {}
 ): Servizio => ({
   id: id('s'),
   tipo,
@@ -71,7 +71,11 @@ const srv = (
   stato: o.stato ?? 'confermato',
   scadenzaEmissione: o.emissione !== undefined ? dayOffset(o.emissione) : undefined,
   scadenzaFornitore: o.fornitore !== undefined ? dayOffset(o.fornitore) : undefined,
-  pagatoFornitore: o.pagato ?? false,
+  pagatoFornitore: o.pagato ?? !!o.carta,
+  pagatoIl: o.pagatoIl !== undefined ? dayOffset(o.pagatoIl) : undefined,
+  cartaId: o.carta,
+  passeggeriIds: o.pax,
+  paganteId: o.pagante,
 })
 
 const pag = (etichetta: string, importo: number, scadenza: number, pagato?: number, metodo: Pagamento['metodo'] = 'bonifico'): Pagamento => ({
@@ -88,7 +92,7 @@ const pratica = (
   clienteId: string, operatoreId: string, titolo: string, destinazione: string, stato: StatoPratica,
   partenza: number, notti: number, creata: number,
   passeggeri: Passeggero[], servizi: Servizio[], pagamenti: Pagamento[],
-  o: { extraUE?: boolean; validita?: number; note?: string } = {}
+  o: { extraUE?: boolean; validita?: number; note?: string; pagante?: string } = {}
 ): Pratica => ({
   id: id('pr'),
   codice: `2026/${String(140 + ++seq * 3).padStart(4, '0')}`,
@@ -98,6 +102,7 @@ const pratica = (
   rientro: dayOffset(partenza + notti),
   creata: dayOffset(creata),
   validitaPreventivo: o.validita !== undefined ? dayOffset(o.validita) : undefined,
+  paganteId: o.pagante,
   passeggeri, servizi, pagamenti,
   note: o.note,
 })
@@ -110,7 +115,7 @@ export function buildInitialDB(): DB {
       [pax('Andrea', 'Lazzeri', 32, 'passaporto', 1500), pax('Sofia', 'Fanucchi', 30, 'passaporto', 1100)],
       [
         srv('pacchetto', 'Soggiorno 9 notti resort Vilamendhoo, mezza pensione', 'f2', 4480, 5290, { fornitore: 20 }),
-        srv('volo', 'Voli ITA Roma–Malé a/r', 'f5', 1190, 1260, { stato: 'emesso', pagato: true }),
+        srv('volo', 'Voli ITA Roma–Malé a/r', 'f5', 1190, 1260, { stato: 'emesso', carta: 'k1', pagatoIl: -58 }),
         srv('transfer', 'Idrovolante e trasferimenti', 'f2', 420, 560, { fornitore: 20 }),
         srv('assicurazione', 'Annullamento + sanitaria', 'f6', 160, 225, { stato: 'emesso', pagato: true }),
       ],
@@ -121,7 +126,7 @@ export function buildInitialDB(): DB {
       [pax('Luca', 'Rossi', 42, 'carta_identita', 900), pax('Anna', 'Rossi', 40, 'carta_identita', 700), pax('Matteo', 'Rossi', 9, 'carta_identita', 500), pax('Giulia', 'Rossi', 6, 'carta_identita', 400)],
       [
         srv('pacchetto', 'Villaggio 7 notti, pensione completa, 2 adulti + 2 bambini', 'f1', 3980, 4580, { fornitore: 10 }),
-        srv('transfer', 'Traghetto Livorno–Olbia auto + 4 pax', 'f1', 460, 540, { regime: 'intermediazione', stato: 'emesso', pagato: true }),
+        srv('transfer', 'Traghetto Livorno–Olbia auto + 4 pax', 'f1', 460, 540, { regime: 'intermediazione', stato: 'emesso', carta: 'k1', pagatoIl: -85 }),
       ],
       [pag('Acconto', 1500, -90, -90), pag('Secondo acconto', 1500, -30, -28), pag('Saldo', 2120, -3)],
       { note: 'Saldo scaduto: sollecitare.' }),
@@ -149,7 +154,7 @@ export function buildInitialDB(): DB {
       Array.from({ length: 6 }, (_, i) => pax(['Davide', 'Laura', 'Stefano', 'Monica', 'Gianni', 'Paola'][i], 'Martinelli', 38 + i, 'carta_identita', 1400 + i * 40)),
       [
         srv('pacchetto', 'Hotel 4* centro, 4 notti, colazione, 3 camere', 'f8', 3180, 3720, { fornitore: 30 }),
-        srv('volo', 'Voli Pisa–Lisbona a/r x6', 'f5', 1560, 1650, { stato: 'emesso', pagato: true }),
+        srv('volo', 'Voli Pisa–Lisbona a/r x6', 'f5', 1560, 1650, { stato: 'emesso', carta: 'k2', pagatoIl: -65 }),
         srv('escursione', 'Tour Sintra e Cascais con guida privata', 'f7', 540, 720, { regime: '74ter', fornitore: 45 }),
       ],
       [pag('Acconto 40%', 2300, -70, -70), pag('Saldo', 3790, 25)]),
@@ -165,7 +170,7 @@ export function buildInitialDB(): DB {
     pratica('c9', 'o2', 'Egitto — Sharm el Sheikh', 'Egitto', 'confermata', 14, 7, -50,
       [pax('Paola', 'Bertolucci', 44, 'passaporto', 1000), pax('Franco', 'Bertolucci', 46, 'carta_identita', 700), pax('Irene', 'Bertolucci', 15, 'passaporto', 900)],
       [
-        srv('pacchetto', 'Resort all inclusive 7 notti, volo incluso', 'f2', 2790, 3240, { fornitore: 3 }),
+        srv('pacchetto', 'Resort all inclusive 7 notti, volo incluso', 'f2', 2790, 3240, { carta: 'k1', pagatoIl: -6 }),
         srv('visto', 'Visto d\'ingresso x3', 'f2', 75, 105, { regime: 'intermediazione' }),
       ],
       [pag('Acconto', 1300, -48, -48), pag('Saldo', 2045, 7)],
@@ -223,30 +228,39 @@ export function buildInitialDB(): DB {
       { note: 'Annullata dal cliente per motivi di salute. Verificare rimborso assicurativo.' }),
 
     // ——— Professionisti ———
-    pratica('c14', 'o1', 'Trasferta Singapore — business class', 'Singapore', 'confermata', 19, 5, -12,
+    pratica('c14', 'o1', 'Trasferta Singapore — business class', 'Singapore', 'confermata', 19, 5, -1,
       [pax('Davide', 'Ferretti', 49, 'passaporto', 1900)],
       [
-        srv('volo', 'ITA Airways Milano–Singapore, business, tariffa flessibile', 'f5', 3900, 4350, { stato: 'emesso', pagato: false, fornitore: 6 }),
+        srv('volo', 'ITA Airways Milano–Singapore, business, tariffa flessibile', 'f5', 3900, 4350, { stato: 'emesso', carta: 'k3', pagatoIl: -1 }),
         srv('hotel', 'Hotel 5 stelle Marina Bay, 5 notti, colazione', 'f8', 1640, 1900, { fornitore: 12 }),
         srv('transfer', 'Autista privato in aeroporto, andata e ritorno', 'f7', 220, 320, { regime: 'intermediazione' }),
       ],
       [pag('Saldo', 6570, 5)],
       { extraUE: true, note: 'Fattura intestata a Gruppo Elettra. Inviare itinerario all’assistente Sara.' }),
 
-    pratica('c15', 'o1', 'Torneo a Melbourne — atleta e staff', 'Australia', 'preventivo', 95, 16, -4,
-      [pax('Marco', 'Valenti', 27, 'passaporto', 1500), pax('Paolo', 'Dini', 41, 'passaporto', 900), pax('Elena', 'Costa', 34, 'passaporto', 1300)],
-      [
-        srv('volo', 'Voli business Milano–Melbourne x3', 'f5', 9600, 10500, { stato: 'opzione', emissione: 3 }),
-        srv('hotel', 'Hotel 5 stelle vicino al centro tennis, 3 camere, 16 notti', 'f8', 11800, 13400, { stato: 'opzione', emissione: 3 }),
-      ],
-      [],
-      { extraUE: true, validita: 5, note: 'Riservatezza massima. Confermare solo con l’agente.' }),
+    (() => {
+      const team = [
+        pax('Marco', 'Valenti', 27, 'passaporto', 1500), pax('Paolo', 'Dini', 41, 'passaporto', 900), pax('Elena', 'Costa', 34, 'passaporto', 1300),
+        pax('Luca', 'Fabbri', 45, 'passaporto', 1100), pax('Tommaso', 'Gori', 24, 'passaporto', 1400), pax('Andrea', 'Neri', 23, 'passaporto', 1250),
+        pax('Silvia', 'Valenti', 52, 'passaporto', 800), pax('Carlo', 'Valenti', 55, 'passaporto', 800),
+      ]
+      const staff = team.slice(0, 4).map((x) => x.id)
+      const resto = team.slice(4).map((x) => x.id)
+      return pratica('c15', 'o1', 'Torneo a Melbourne — atleta, staff e famiglia', 'Australia', 'preventivo', 95, 16, -4, team,
+        [
+          srv('volo', 'Voli business Milano–Melbourne: atleta e staff (4)', 'f5', 12800, 14000, { stato: 'opzione', emissione: 3, pax: staff }),
+          srv('volo', 'Voli economy Milano–Melbourne: sparring e famiglia (4)', 'f5', 4480, 4900, { stato: 'opzione', emissione: 3, pax: resto }),
+          srv('hotel', 'Hotel 5 stelle vicino al centro tennis, 5 camere, 16 notti', 'f8', 17800, 20200, { stato: 'opzione', emissione: 3 }),
+        ],
+        [],
+        { extraUE: true, validita: 5, pagante: team[0].id, note: 'Prenota e paga Marco per tutte e 8 le persone. Riservatezza massima: confermare solo con l’agente.' })
+    })(),
 
     pratica('c17', 'o4', 'Roadshow clienti — Londra', 'Regno Unito', 'confermata', 12, 3, -20,
       [pax('Giulio', 'Neri', 45, 'passaporto', 1300), pax('Ilaria', 'Fiore', 38, 'passaporto', 1100), pax('Matteo', 'Luti', 33, 'carta_identita', 900), pax('Anna', 'Serra', 41, 'passaporto', 1700)],
       [
-        srv('volo', 'Voli Pisa–Londra Heathrow a/r x4', 'f5', 1180, 1290, { stato: 'emesso', pagato: true }),
-        srv('hotel', 'Hotel 4 stelle Paddington, 4 camere, 3 notti', 'f8', 1560, 1830, { fornitore: 5 }),
+        srv('volo', 'Voli Pisa–Londra Heathrow a/r x4', 'f5', 1180, 1290, { stato: 'emesso', carta: 'k2', pagatoIl: -2 }),
+        srv('hotel', 'Hotel 4 stelle Paddington, 4 camere, 3 notti', 'f8', 1560, 1830, { carta: 'k2', pagatoIl: -2 }),
       ],
       [pag('Acconto', 1600, -5, -4), pag('Saldo', 1520, 7)],
       { extraUE: true }),
@@ -261,6 +275,29 @@ export function buildInitialDB(): DB {
       { extraUE: true }),
   ]
 
+  const carte: Carta[] = [
+    { id: 'k1', proprietario: 'agenzia', intestatario: 'Castruccio Viaggi srl', circuito: 'Visa', numero: '4111111111111111', scadenza: '09/28', cvv: '123', limite: 20000, giornoAddebito: 15, note: 'Carta business principale' },
+    { id: 'k2', proprietario: 'agenzia', intestatario: 'Castruccio Viaggi srl', circuito: 'Mastercard', numero: '5555555555554444', scadenza: '02/28', cvv: '456', limite: 12000, giornoAddebito: 28, note: 'Carta per biglietteria aerea' },
+    { id: 'k3', proprietario: 'c14', intestatario: 'Davide Ferretti', circuito: 'American Express', numero: '378282246310005', scadenza: '08/28', cvv: '1234', note: 'Carta aziendale Gruppo Elettra: usare per voli e hotel' },
+    { id: 'k4', proprietario: 'c16', intestatario: 'Elisabetta Conti', circuito: 'Visa', numero: '4012888888881881', scadenza: '11/27', cvv: '789' },
+    { id: 'k5', proprietario: 'c15', intestatario: 'Marco Valenti', circuito: 'Mastercard', numero: '5105105105105100', scadenza: '03/27', cvv: '321', limite: 50000, note: 'Paga lui per tutto lo staff e la famiglia' },
+    { id: 'k6', proprietario: 'c4', intestatario: 'Studio Tecnico Martinelli', circuito: 'Visa', numero: '4222222222222', scadenza: '05/26', cvv: '654', note: 'Carta dello studio, da farsi aggiornare' },
+  ]
+
+  // Storico "migrato dal vecchio gestionale": dati fittizi con stagionalità, fino a settembre 2026
+  const pesi = [0.11, 0.1, 0.1, 0.08, 0.07, 0.07, 0.07, 0.06, 0.07, 0.08, 0.09, 0.1]
+  const annuale: Record<number, number> = { 2022: 612000, 2023: 688000, 2024: 751000, 2025: 826000, 2026: 902000 }
+  const storico: StoricoMese[] = []
+  for (const anno of [2022, 2023, 2024, 2025, 2026]) {
+    for (let mese = 1; mese <= 12; mese++) {
+      if (anno === 2026 && mese > 9) break
+      const rumore = 1 + Math.sin(anno * 12 + mese * 1.7) * 0.07
+      const fatturato = Math.round((annuale[anno] * pesi[mese - 1] * rumore) / 100) * 100
+      storico.push({ anno, mese, fatturato, margine: Math.round((fatturato * (0.118 + Math.cos(anno + mese) * 0.01)) / 10) * 10 })
+    }
+  }
+  const storicoFino = '2026-09-30'
+
   const campagne: Campagna[] = [
     { id: id('cm'), nome: 'Auguri di Natale 2025', template: 'natale', oggetto: 'Buone feste da Castruccio Viaggi', testo: '', stato: 'inviata', data: dayOffset(-282), inviati: 10, aperture: 7, click: 1 },
     { id: id('cm'), nome: 'Early booking estate 2026', template: 'early', oggetto: 'Prenota ora l’estate: sconti fino al 15%', testo: '', stato: 'inviata', data: dayOffset(-210), inviati: 9, aperture: 6, click: 3 },
@@ -274,5 +311,5 @@ export function buildInitialDB(): DB {
     { id: id('au'), nome: 'Auguri di compleanno', descrizione: 'Un biglietto di auguri con un piccolo omaggio sul prossimo viaggio.', quando: 'Il giorno del compleanno', attiva: false, inviati30: 0 },
     { id: id('au'), nome: 'Ci siamo persi di vista?', descrizione: 'Proposta personalizzata a chi non viaggia con noi da 12 mesi.', quando: '12 mesi dall’ultimo viaggio', attiva: false, inviati30: 0 },
   ]
-  return { operatori, clienti, fornitori, pratiche, campagne, automazioni }
+  return { operatori, clienti, fornitori, pratiche, campagne, automazioni, carte, storico, storicoFino }
 }

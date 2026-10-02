@@ -1,9 +1,10 @@
-import { AlertTriangle, ArrowLeft, Check, Plus, Printer, Trash2 } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Check, CreditCard, Pencil, Plus, Printer, Trash2, Users } from 'lucide-react'
 import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { Contatti, clienteDi } from '../components/shared'
 import { Avatar, Badge, Card, CardTitle, Empty, Field, Modal, PageHeader, Progress, Stat, Tabs } from '../components/ui'
 import type { Passeggero, Pagamento, Pratica, Servizio, StatoServizio, TipoServizio } from '../data/types'
+import { mascherata, scopertoCarte } from '../lib/finanza'
 import { daIncassare, incassato, ivaPratica, ivaServizio, margine, marginePerc, problemiDocumenti, scopertoPiano, STATO_LABEL, STATO_ORDER, TIPO_LABEL, totCosto, totRicavo } from '../lib/calc'
 import { cx, dayOffset, daysFromToday, eur, eur0, fmtDate, num, relDays, uid } from '../lib/format'
 import { useStore } from '../store'
@@ -41,6 +42,17 @@ export default function PraticaDetail() {
         {op && <span className="flex items-center gap-1.5 text-xs text-ink-mute"><Avatar name={op.nome} color={op.colore} size={22} /> {op.nome}</span>}
       </div>
       {cli && <div className="mb-5"><Contatti c={cli} compact /></div>}
+      {p.passeggeri.length > 1 && (
+        <label className="mb-5 flex flex-wrap items-center gap-2 rounded-lg border border-line bg-white px-3 py-2 text-sm">
+          <Users size={15} className="text-ink-mute" />
+          <span className="text-ink-soft">Prenota e paga per tutti:</span>
+          <select className="input w-auto py-1 text-sm" value={p.paganteId ?? ''} onChange={(e) => upd((x) => ({ ...x, paganteId: e.target.value || undefined }))}>
+            <option value="">{cli?.nome ?? 'Il cliente'} (intestatario)</option>
+            {p.passeggeri.map((x) => <option key={x.id} value={x.id}>{x.nome} {x.cognome}</option>)}
+          </select>
+          <span className="text-xs text-ink-mute">{p.passeggeri.length} persone, un solo referente per pagamenti e prenotazioni</span>
+        </label>
+      )}
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Totale cliente" value={eur0(tot)} tone="neutral" />
@@ -88,74 +100,112 @@ export default function PraticaDetail() {
 
 function ServiziTab({ p, upd }: { p: Pratica; upd: (fn: (p: Pratica) => Pratica) => void }) {
   const { db } = useStore()
-  const [open, setOpen] = useState(false)
+  const [modale, setModale] = useState<Servizio | 'nuovo' | null>(null)
+  const [paga, setPaga] = useState<Servizio | null>(null)
   const setServ = (sid: string, patch: Partial<Servizio>) => upd((x) => ({ ...x, servizi: x.servizi.map((s) => (s.id === sid ? { ...s, ...patch } : s)) }))
   const forn = (id: string) => db.fornitori.find((f) => f.id === id)?.nome ?? '—'
   const statoTone: Record<StatoServizio, 'amber' | 'blue' | 'green'> = { opzione: 'amber', confermato: 'blue', emesso: 'green' }
+  const nomePax = (id?: string) => {
+    const x = p.passeggeri.find((y) => y.id === id)
+    return x ? `${x.nome} ${x.cognome}` : null
+  }
+  const anticipo = scopertoCarte(db).perPratica.find((x) => x.pratica.id === p.id)
 
   return (
     <div className="grid gap-5 lg:grid-cols-3">
       <div className="space-y-3 lg:col-span-2">
         {p.servizi.length === 0 && <Empty>Nessun servizio. Aggiungi volo, hotel, crociera o un pacchetto.</Empty>}
-        {p.servizi.map((s) => (
-          <Card key={s.id}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="mb-1 flex flex-wrap items-center gap-1.5">
-                  <Badge tone="brand">{TIPO_LABEL[s.tipo]}</Badge>
-                  <Badge tone={statoTone[s.stato]}>{s.stato}</Badge>
-                  <Badge title={s.regime === '74ter' ? 'IVA sul margine' : 'Solo commissione'}>{s.regime === '74ter' ? '74-ter' : 'Intermediazione'}</Badge>
+        {p.servizi.map((s) => {
+          const coperti = s.passeggeriIds?.length ? s.passeggeriIds : p.passeggeri.map((x) => x.id)
+          const parziale = coperti.length < p.passeggeri.length
+          const pagante = nomePax(s.paganteId ?? p.paganteId)
+          const carta = db.carte.find((k) => k.id === s.cartaId)
+          return (
+            <Card key={s.id}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                    <Badge tone="brand">{TIPO_LABEL[s.tipo]}</Badge>
+                    <Badge tone={statoTone[s.stato]}>{s.stato}</Badge>
+                    <Badge title={s.regime === '74ter' ? 'IVA sul margine' : 'Solo commissione'}>{s.regime === '74ter' ? '74-ter' : 'Intermediazione'}</Badge>
+                  </div>
+                  <p className="text-[15px] font-medium">{s.descrizione}</p>
+                  <p className="text-xs text-ink-mute">{forn(s.fornitoreId)}</p>
+                  {p.passeggeri.length > 1 && (
+                    <p className="mt-1 text-xs text-ink-soft">
+                      <Users size={12} className="mr-1 inline" />
+                      {parziale ? `Per ${coperti.length} di ${p.passeggeri.length}: ${coperti.map((id) => nomePax(id)?.split(' ')[0]).filter(Boolean).join(', ')}` : `Per tutti e ${p.passeggeri.length} i passeggeri`}
+                      {pagante && <> · prenota e paga <strong>{pagante}</strong></>}
+                    </p>
+                  )}
                 </div>
-                <p className="text-[15px] font-medium">{s.descrizione}</p>
-                <p className="text-xs text-ink-mute">{forn(s.fornitoreId)}</p>
+                <div className="flex shrink-0 gap-0.5">
+                  <button className="rounded-md p-1.5 text-ink-mute hover:bg-canvas hover:text-ink" aria-label="Modifica servizio" onClick={() => setModale(s)}><Pencil size={15} /></button>
+                  <button className="rounded-md p-1.5 text-ink-mute hover:bg-rose2-soft hover:text-rose2" aria-label="Elimina servizio" onClick={() => { if (confirm('Eliminare questo servizio?')) upd((x) => ({ ...x, servizi: x.servizi.filter((y) => y.id !== s.id) })) }}><Trash2 size={15} /></button>
+                </div>
               </div>
-              <button className="rounded-md p-1.5 text-ink-mute hover:bg-rose2-soft hover:text-rose2" aria-label="Elimina servizio" onClick={() => { if (confirm('Eliminare questo servizio?')) upd((x) => ({ ...x, servizi: x.servizi.filter((y) => y.id !== s.id) })) }}><Trash2 size={15} /></button>
-            </div>
-            <dl className="mt-3 grid grid-cols-3 gap-3 border-t border-line pt-3 text-sm">
-              <div><dt className="text-[11px] text-ink-mute">Cliente paga</dt><dd className="font-semibold tabular-nums">{eur0(s.ricavo)}</dd></div>
-              <div><dt className="text-[11px] text-ink-mute">Costo fornitore</dt><dd className="tabular-nums">{eur0(s.costo)}</dd></div>
-              <div><dt className="text-[11px] text-ink-mute">Margine</dt><dd className="font-semibold tabular-nums text-moss">{eur0(s.ricavo - s.costo)}</dd></div>
-            </dl>
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-              {s.stato !== 'emesso' && (
-                <button className="btn-ghost btn-sm" onClick={() => setServ(s.id, { stato: 'emesso' })}><Check size={13} /> Segna come emesso</button>
-              )}
-              {s.stato === 'opzione' && <button className="btn-ghost btn-sm" onClick={() => setServ(s.id, { stato: 'confermato' })}>Conferma opzione</button>}
-              {s.scadenzaEmissione && s.stato !== 'emesso' && <span className={daysFromToday(s.scadenzaEmissione) <= 3 ? 'font-medium text-rose2' : 'text-ink-mute'}>Entro il {fmtDate(s.scadenzaEmissione)} ({relDays(s.scadenzaEmissione)})</span>}
-              <span className="ml-auto flex items-center gap-2">
-                {s.pagatoFornitore ? <Badge tone="green"><Check size={11} /> fornitore pagato</Badge> : (
-                  <>
-                    {s.scadenzaFornitore && <span className={daysFromToday(s.scadenzaFornitore) <= 7 ? 'font-medium text-amber2' : 'text-ink-mute'}>Pagare fornitore {relDays(s.scadenzaFornitore)}</span>}
-                    <button className="btn-ghost btn-sm" onClick={() => setServ(s.id, { pagatoFornitore: true })}>Fornitore pagato</button>
-                  </>
-                )}
-              </span>
-            </div>
-          </Card>
-        ))}
-        <button className="btn-ghost w-full" onClick={() => setOpen(true)}><Plus size={15} /> Aggiungi servizio</button>
+              <dl className="mt-3 grid grid-cols-3 gap-3 border-t border-line pt-3 text-sm">
+                <div><dt className="text-[11px] text-ink-mute">Cliente paga</dt><dd className="font-semibold tabular-nums">{eur0(s.ricavo)}</dd></div>
+                <div><dt className="text-[11px] text-ink-mute">Costo fornitore</dt><dd className="tabular-nums">{eur0(s.costo)}</dd></div>
+                <div><dt className="text-[11px] text-ink-mute">Margine</dt><dd className="font-semibold tabular-nums text-moss">{eur0(s.ricavo - s.costo)}</dd></div>
+              </dl>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                {s.stato !== 'emesso' && <button className="btn-ghost btn-sm" onClick={() => setServ(s.id, { stato: 'emesso' })}><Check size={13} /> Segna come emesso</button>}
+                {s.stato === 'opzione' && <button className="btn-ghost btn-sm" onClick={() => setServ(s.id, { stato: 'confermato' })}>Conferma opzione</button>}
+                {s.scadenzaEmissione && s.stato !== 'emesso' && <span className={daysFromToday(s.scadenzaEmissione) <= 3 ? 'font-medium text-rose2' : 'text-ink-mute'}>Entro il {fmtDate(s.scadenzaEmissione)} ({relDays(s.scadenzaEmissione)})</span>}
+                <span className="ml-auto flex flex-wrap items-center justify-end gap-2">
+                  {s.pagatoFornitore ? (
+                    <>
+                      <Badge tone="green"><Check size={11} /> fornitore pagato{s.pagatoIl ? ` il ${fmtDate(s.pagatoIl)}` : ''}</Badge>
+                      {carta && <Badge tone={carta.proprietario === 'agenzia' ? 'amber' : 'blue'}><CreditCard size={11} /> {carta.circuito} {mascherata(carta)}{carta.proprietario === 'agenzia' ? ' · carta agenzia' : ' · carta del cliente'}</Badge>}
+                    </>
+                  ) : (
+                    <>
+                      {s.scadenzaFornitore && <span className={daysFromToday(s.scadenzaFornitore) <= 7 ? 'font-medium text-amber2' : 'text-ink-mute'}>Pagare fornitore {relDays(s.scadenzaFornitore)}</span>}
+                      <button className="btn-ghost btn-sm" onClick={() => setPaga(s)}>Fornitore pagato…</button>
+                    </>
+                  )}
+                </span>
+              </div>
+            </Card>
+          )
+        })}
+        <button className="btn-ghost w-full" onClick={() => setModale('nuovo')}><Plus size={15} /> Aggiungi servizio</button>
       </div>
 
-      <Card className="h-fit">
-        <CardTitle sub="Stima indicativa, da verificare con il commercialista">Margine e IVA</CardTitle>
-        <dl className="space-y-2 text-sm">
-          <Row k="Incasso dal cliente" v={eur(totRicavo(p))} />
-          <Row k="Costi fornitori" v={`− ${eur(totCosto(p))}`} />
-          <div className="border-t border-line pt-2"><Row k="Margine lordo" v={eur(margine(p))} strong /></div>
-          <Row k="IVA stimata sul margine" v={`− ${eur(ivaPratica(p))}`} />
-          <div className="border-t border-line pt-2"><Row k="Margine netto IVA" v={eur(margine(p) - ivaPratica(p))} strong /></div>
-        </dl>
-        <p className="mt-3 text-[11px] leading-snug text-ink-mute">
-          Nei pacchetti (regime 74-ter) l’IVA si calcola sul margine, non sul prezzo di vendita. Per gli altri servizi l’agenzia incassa solo la commissione.
-        </p>
-        {p.servizi.length > 0 && (
-          <ul className="mt-3 space-y-1 border-t border-line pt-3 text-[11px] text-ink-mute">
-            {p.servizi.map((s) => <li key={s.id} className="flex justify-between gap-2"><span className="truncate">{s.descrizione}</span><span className="tabular-nums">IVA {eur(ivaServizio(s))}</span></li>)}
-          </ul>
+      <div className="space-y-4">
+        <Card className="h-fit">
+          <CardTitle sub="Stima indicativa, da verificare con il commercialista">Margine e IVA</CardTitle>
+          <dl className="space-y-2 text-sm">
+            <Row k="Incasso dal cliente" v={eur(totRicavo(p))} />
+            <Row k="Costi fornitori" v={`− ${eur(totCosto(p))}`} />
+            <div className="border-t border-line pt-2"><Row k="Margine lordo" v={eur(margine(p))} strong /></div>
+            <Row k="IVA stimata sul margine" v={`− ${eur(ivaPratica(p))}`} />
+            <div className="border-t border-line pt-2"><Row k="Margine netto IVA" v={eur(margine(p) - ivaPratica(p))} strong /></div>
+          </dl>
+          <p className="mt-3 text-[11px] leading-snug text-ink-mute">
+            Nei pacchetti (regime 74-ter) l’IVA si calcola sul margine, non sul prezzo di vendita. Per gli altri servizi l’agenzia incassa solo la commissione.
+          </p>
+          {p.servizi.length > 0 && (
+            <ul className="mt-3 space-y-1 border-t border-line pt-3 text-[11px] text-ink-mute">
+              {p.servizi.map((s) => <li key={s.id} className="flex justify-between gap-2"><span className="truncate">{s.descrizione}</span><span className="tabular-nums">IVA {eur(ivaServizio(s))}</span></li>)}
+            </ul>
+          )}
+        </Card>
+        {anticipo && (
+          <Card className="h-fit">
+            <CardTitle sub="Costi pagati con le carte dell’agenzia">Anticipi su carta</CardTitle>
+            <dl className="space-y-2 text-sm">
+              <Row k="Anticipato" v={eur(anticipo.anticipato)} />
+              <Row k="Già incassato dal cliente" v={`− ${eur(anticipo.incassato)}`} />
+              <div className="border-t border-line pt-2"><Row k="Scoperto da coprire" v={eur(anticipo.scoperto)} strong /></div>
+            </dl>
+          </Card>
         )}
-      </Card>
+      </div>
 
-      <NuovoServizio open={open} onClose={() => setOpen(false)} onAdd={(s) => { upd((x) => ({ ...x, servizi: [...x.servizi, s] })); setOpen(false) }} />
+      {modale && <ServizioModal key={modale === 'nuovo' ? 'nuovo' : modale.id} p={p} servizio={modale === 'nuovo' ? undefined : modale} onClose={() => setModale(null)} onSave={(sv) => { upd((x) => ({ ...x, servizi: x.servizi.some((y) => y.id === sv.id) ? x.servizi.map((y) => (y.id === sv.id ? sv : y)) : [...x.servizi, sv] })); setModale(null) }} />}
+      {paga && <PagaFornitoreModal key={paga.id} p={p} servizio={paga} onClose={() => setPaga(null)} onSave={(patch) => { setServ(paga.id, patch); setPaga(null) }} />}
     </div>
   )
 }
@@ -164,24 +214,33 @@ const Row = ({ k, v, strong }: { k: string; v: string; strong?: boolean }) => (
   <div className="flex justify-between gap-3"><dt className={strong ? 'font-medium' : 'text-ink-soft'}>{k}</dt><dd className={cx('tabular-nums', strong && 'font-semibold')}>{v}</dd></div>
 )
 
-function NuovoServizio({ open, onClose, onAdd }: { open: boolean; onClose: () => void; onAdd: (s: Servizio) => void }) {
+function ServizioModal({ p, servizio, onClose, onSave }: { p: Pratica; servizio?: Servizio; onClose: () => void; onSave: (s: Servizio) => void }) {
   const { db } = useStore()
-  const [tipo, setTipo] = useState<TipoServizio>('hotel')
-  const [descrizione, setDescrizione] = useState('')
-  const [fornitoreId, setFornitoreId] = useState(db.fornitori[0].id)
-  const [costo, setCosto] = useState('')
-  const [ricavo, setRicavo] = useState('')
-  const [regime, setRegime] = useState<Servizio['regime']>('74ter')
-  const ok = descrizione.trim() && Number(ricavo) > 0 && Number(costo) >= 0 && costo !== ''
-  const aggiungi = () => {
-    onAdd({ id: uid('s'), tipo, descrizione: descrizione.trim(), fornitoreId, costo: Number(costo), ricavo: Number(ricavo), regime, stato: 'opzione', pagatoFornitore: false, scadenzaEmissione: dayOffset(5) })
-    setDescrizione(''); setCosto(''); setRicavo('')
-  }
+  const [tipo, setTipo] = useState<TipoServizio>(servizio?.tipo ?? 'hotel')
+  const [descrizione, setDescrizione] = useState(servizio?.descrizione ?? '')
+  const [fornitoreId, setFornitoreId] = useState(servizio?.fornitoreId ?? db.fornitori[0].id)
+  const [costo, setCosto] = useState(servizio ? String(servizio.costo) : '')
+  const [ricavo, setRicavo] = useState(servizio ? String(servizio.ricavo) : '')
+  const [regime, setRegime] = useState<Servizio['regime']>(servizio?.regime ?? '74ter')
+  const tutti = p.passeggeri.map((x) => x.id)
+  const [coperti, setCoperti] = useState<string[]>(servizio?.passeggeriIds?.length ? servizio.passeggeriIds : tutti)
+  const [paganteId, setPaganteId] = useState(servizio?.paganteId ?? '')
+  const ok = descrizione.trim() && Number(ricavo) > 0 && Number(costo) >= 0 && costo !== '' && (p.passeggeri.length === 0 || coperti.length > 0)
+  const tuttiScelti = coperti.length === tutti.length
+
+  const salva = () =>
+    onSave({
+      id: servizio?.id ?? uid('s'), tipo, descrizione: descrizione.trim(), fornitoreId, costo: Number(costo), ricavo: Number(ricavo), regime,
+      stato: servizio?.stato ?? 'opzione', pagatoFornitore: servizio?.pagatoFornitore ?? false, pagatoIl: servizio?.pagatoIl, cartaId: servizio?.cartaId,
+      scadenzaEmissione: servizio ? servizio.scadenzaEmissione : dayOffset(5), scadenzaFornitore: servizio?.scadenzaFornitore,
+      passeggeriIds: tuttiScelti ? undefined : coperti, paganteId: paganteId || undefined,
+    })
+
   return (
-    <Modal open={open} onClose={onClose} title="Aggiungi servizio" footer={<><button className="btn-ghost" onClick={onClose}>Annulla</button><button className="btn-brand" disabled={!ok} onClick={aggiungi}>Aggiungi</button></>}>
+    <Modal open onClose={onClose} title={servizio ? 'Modifica servizio' : 'Aggiungi servizio'} footer={<><button className="btn-ghost" onClick={onClose}>Annulla</button><button className="btn-brand" disabled={!ok} onClick={salva}>{servizio ? 'Salva' : 'Aggiungi'}</button></>}>
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Tipo"><select className="input" value={tipo} onChange={(e) => { const t = e.target.value as TipoServizio; setTipo(t); setRegime(['volo', 'assicurazione', 'transfer', 'visto', 'noleggio'].includes(t) ? 'intermediazione' : '74ter') }}>{(Object.keys(TIPO_LABEL) as TipoServizio[]).map((t) => <option key={t} value={t}>{TIPO_LABEL[t]}</option>)}</select></Field>
+          <Field label="Tipo"><select className="input" value={tipo} onChange={(e) => { const t = e.target.value as TipoServizio; setTipo(t); if (!servizio) setRegime(['volo', 'assicurazione', 'transfer', 'visto', 'noleggio'].includes(t) ? 'intermediazione' : '74ter') }}>{(Object.keys(TIPO_LABEL) as TipoServizio[]).map((t) => <option key={t} value={t}>{TIPO_LABEL[t]}</option>)}</select></Field>
           <Field label="Fornitore"><select className="input" value={fornitoreId} onChange={(e) => setFornitoreId(e.target.value)}>{db.fornitori.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}</select></Field>
         </div>
         <Field label="Descrizione"><input className="input" value={descrizione} onChange={(e) => setDescrizione(e.target.value)} placeholder="Es. Hotel 4 stelle, 5 notti, colazione" /></Field>
@@ -190,7 +249,55 @@ function NuovoServizio({ open, onClose, onAdd }: { open: boolean; onClose: () =>
           <Field label="Prezzo al cliente (€)"><input type="number" inputMode="decimal" className="input" value={ricavo} onChange={(e) => setRicavo(e.target.value)} /></Field>
         </div>
         <Field label="Regime IVA"><select className="input" value={regime} onChange={(e) => setRegime(e.target.value as Servizio['regime'])}><option value="74ter">Pacchetto — 74-ter (IVA sul margine)</option><option value="intermediazione">Intermediazione (solo commissione)</option></select></Field>
-        <p className="text-xs text-ink-mute">Il servizio nasce come “opzione”, con promemoria a 5 giorni.</p>
+
+        {p.passeggeri.length > 1 && (
+          <>
+            <Field label={`Per chi è questo servizio (${coperti.length} di ${p.passeggeri.length})`} hint="Utile quando un volo o un hotel copre solo una parte del gruppo.">
+              <div className="space-y-1 rounded-lg border border-line-strong p-2">
+                <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={tuttiScelti} onChange={(e) => setCoperti(e.target.checked ? tutti : [])} /> Tutti</label>
+                {p.passeggeri.map((x) => (
+                  <label key={x.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={coperti.includes(x.id)} onChange={(e) => setCoperti((c) => (e.target.checked ? [...c, x.id] : c.filter((y) => y !== x.id)))} /> {x.nome} {x.cognome}</label>
+                ))}
+              </div>
+            </Field>
+            <Field label="Chi prenota e paga" hint="Lascia “Come la pratica” se paga la stessa persona di tutta la pratica.">
+              <select className="input" value={paganteId} onChange={(e) => setPaganteId(e.target.value)}>
+                <option value="">Come la pratica</option>
+                {p.passeggeri.map((x) => <option key={x.id} value={x.id}>{x.nome} {x.cognome}</option>)}
+              </select>
+            </Field>
+          </>
+        )}
+        {!servizio && <p className="text-xs text-ink-mute">Il servizio nasce come “opzione”, con promemoria a 5 giorni.</p>}
+      </div>
+    </Modal>
+  )
+}
+
+function PagaFornitoreModal({ p, servizio, onClose, onSave }: { p: Pratica; servizio: Servizio; onClose: () => void; onSave: (patch: Partial<Servizio>) => void }) {
+  const { db } = useStore()
+  const agenzia = db.carte.filter((k) => k.proprietario === 'agenzia')
+  const cliente = db.carte.filter((k) => k.proprietario === p.clienteId)
+  const [metodo, setMetodo] = useState<'altro' | 'agenzia' | 'cliente'>('altro')
+  const [cartaId, setCartaId] = useState('')
+  const lista = metodo === 'agenzia' ? agenzia : cliente
+  const scelta = lista.find((k) => k.id === cartaId) ?? lista[0]
+  const ok = metodo === 'altro' || !!scelta
+  return (
+    <Modal open onClose={onClose} title="Fornitore pagato" footer={<><button className="btn-ghost" onClick={onClose}>Annulla</button><button className="btn-brand" disabled={!ok} onClick={() => onSave({ pagatoFornitore: true, pagatoIl: dayOffset(0), cartaId: metodo === 'altro' ? undefined : scelta?.id })}>Conferma</button></>}>
+      <div className="space-y-3">
+        <p className="text-sm text-ink-soft">{servizio.descrizione} · <strong>{eur(servizio.costo)}</strong></p>
+        <Field label="Come hai pagato">
+          <select className="input" value={metodo} onChange={(e) => { setMetodo(e.target.value as typeof metodo); setCartaId('') }}>
+            <option value="altro">Bonifico o altro (non su carta)</option>
+            <option value="agenzia">Carta dell’agenzia</option>
+            <option value="cliente">Carta del cliente</option>
+          </select>
+        </Field>
+        {metodo !== 'altro' && (lista.length === 0 ? <p className="rounded-lg bg-amber2-soft px-3 py-2 text-xs text-amber2">Nessuna carta {metodo === 'agenzia' ? 'dell’agenzia' : 'registrata per questo cliente'}. Aggiungila dalla scheda del cliente.</p> : (
+          <Field label="Quale carta"><select className="input" value={scelta?.id} onChange={(e) => setCartaId(e.target.value)}>{lista.map((k) => <option key={k.id} value={k.id}>{k.circuito} {mascherata(k)} · {k.intestatario}</option>)}</select></Field>
+        ))}
+        {metodo === 'agenzia' && <p className="text-xs text-ink-mute">L’importo conta come “scoperto” finché il cliente non ha pagato quanto hai anticipato.</p>}
       </div>
     </Modal>
   )
@@ -209,7 +316,7 @@ function PasseggeriTab({ p, upd }: { p: Pratica; upd: (fn: (p: Pratica) => Prati
           <Card key={x.id}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[15px] font-medium">{x.nome} {x.cognome}</p>
+                <p className="text-[15px] font-medium">{x.nome} {x.cognome} {p.paganteId === x.id && <Badge tone="blue" className="ml-1">prenota e paga</Badge>}</p>
                 <p className="text-xs text-ink-mute">Nato il {fmtDate(x.nascita)} · {x.docTipo === 'passaporto' ? 'Passaporto' : 'Carta d’identità'} {x.docNumero || '—'}</p>
               </div>
               <div className="flex items-center gap-2">

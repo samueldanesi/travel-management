@@ -72,6 +72,13 @@ export interface Servizio {
   /** data entro cui pagare il fornitore */
   scadenzaFornitore?: string
   pagatoFornitore: boolean
+  /** quando e con cosa è stato pagato il fornitore */
+  pagatoIl?: string
+  cartaId?: string
+  /** passeggeri coperti da questo servizio (vuoto = tutti quelli della pratica) */
+  passeggeriIds?: string[]
+  /** chi prenota e paga questo servizio, se diverso da chi paga la pratica (id passeggero) */
+  paganteId?: string
 }
 
 export interface Pagamento {
@@ -97,6 +104,8 @@ export interface Pratica {
   rientro: string
   creata: string
   validitaPreventivo?: string
+  /** chi prenota e paga per tutti, se non è il cliente della pratica (id passeggero): tipico di sportivi e staff */
+  paganteId?: string
   passeggeri: Passeggero[]
   servizi: Servizio[]
   pagamenti: Pagamento[]
@@ -130,6 +139,31 @@ export interface Automazione {
   inviati30: number
 }
 
+export type Circuito = 'Visa' | 'Mastercard' | 'American Express' | 'Altra'
+
+export interface Carta {
+  id: string
+  /** 'agenzia' oppure l'id del cliente a cui appartiene */
+  proprietario: string
+  intestatario: string
+  circuito: Circuito
+  numero: string
+  scadenza: string
+  cvv?: string
+  limite?: number
+  /** solo carte dell'agenzia: giorno del mese in cui il saldo viene addebitato in conto */
+  giornoAddebito?: number
+  note?: string
+}
+
+/** Fatturato aggregato di un mese, importato dal vecchio gestionale */
+export interface StoricoMese {
+  anno: number
+  mese: number
+  fatturato: number
+  margine?: number
+}
+
 export interface DB {
   operatori: Operatore[]
   clienti: Cliente[]
@@ -137,4 +171,8 @@ export interface DB {
   pratiche: Pratica[]
   campagne: Campagna[]
   automazioni: Automazione[]
+  carte: Carta[]
+  storico: StoricoMese[]
+  /** ultimo giorno coperto dallo storico importato: dopo questa data il fatturato si calcola dalle pratiche */
+  storicoFino: string
 }

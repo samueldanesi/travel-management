@@ -1,6 +1,9 @@
 import { ArrowLeft, MailCheck, MailX } from 'lucide-react'
+import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
+import { AvvisoDemoCarte, BottoneNuovaCarta, CartaCard, CartaModal } from '../components/carte'
 import { Contatti, PraticaCard } from '../components/shared'
+import type { Carta } from '../data/types'
 import { Badge, Card, CardTitle, Empty, PageHeader, Stat } from '../components/ui'
 import { margine, totRicavo } from '../lib/calc'
 import { CATEGORIA_LABEL } from '../lib/segmenti'
@@ -15,6 +18,12 @@ export default function ClienteDetail() {
   const mie = db.pratiche.filter((p) => p.clienteId === c.id).sort((a, b) => b.partenza.localeCompare(a.partenza))
   const reali = mie.filter((p) => p.stato !== 'annullata' && p.stato !== 'preventivo')
   const biz = c.segmento === 'business'
+  const [cartaDaModificare, setCartaDaModificare] = useState<Carta | 'nuova' | null>(null)
+  const carte = db.carte.filter((k) => k.proprietario === c.id)
+  const salvaCarta = (k: Carta) => {
+    update((d) => ({ ...d, carte: d.carte.some((x) => x.id === k.id) ? d.carte.map((x) => (x.id === k.id ? k : x)) : [...d.carte, k] }))
+    setCartaDaModificare(null)
+  }
   const set = (patch: Partial<typeof c>) => update((d) => ({ ...d, clienti: d.clienti.map((x) => (x.id === c.id ? { ...x, ...patch } : x)) }))
 
   return (
@@ -37,9 +46,20 @@ export default function ClienteDetail() {
         <Stat label="Margine generato" value={eur0(reali.reduce((s, p) => s + margine(p), 0))} tone="blue" />
       </div>
       <div className="grid gap-6 lg:grid-cols-3">
-        <section className="lg:col-span-2">
+        <section className="space-y-6 lg:col-span-2">
+         <div>
+          <h2 className="mb-3 text-[15px] font-semibold">Carte di pagamento</h2>
+          <p className="mb-3 text-xs text-ink-soft">{biz ? 'Le carte che il cliente affida all’agenzia per prenotare per suo conto: restano qui, a portata di mano.' : 'Carte salvate per le prenotazioni di questo cliente.'}</p>
+          <div className="mb-3"><AvvisoDemoCarte /></div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {carte.map((k) => <CartaCard key={k.id} c={k} onEdit={() => setCartaDaModificare(k)} onDelete={() => update((d) => ({ ...d, carte: d.carte.filter((x) => x.id !== k.id) }))} />)}
+            <div className="flex items-start"><div className="w-full"><BottoneNuovaCarta onClick={() => setCartaDaModificare('nuova')} /></div></div>
+          </div>
+         </div>
+         <div>
           <h2 className="mb-3 text-[15px] font-semibold">Pratiche</h2>
           {mie.length === 0 ? <Empty>Nessuna pratica per questo cliente.</Empty> : <div className="grid gap-3 sm:grid-cols-2">{mie.map((p) => <PraticaCard key={p.id} p={p} db={db} />)}</div>}
+         </div>
         </section>
         <div className="space-y-4">
           <Card>
@@ -61,6 +81,7 @@ export default function ClienteDetail() {
           </Card>}
         </div>
       </div>
+      {cartaDaModificare && <CartaModal key={cartaDaModificare === 'nuova' ? 'nuova' : cartaDaModificare.id} open onClose={() => setCartaDaModificare(null)} carta={cartaDaModificare === 'nuova' ? undefined : cartaDaModificare} proprietario={c.id} intestatario={c.nome} onSave={salvaCarta} />}
     </>
   )
 }
