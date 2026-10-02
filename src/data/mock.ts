@@ -1,5 +1,5 @@
 import { dayOffset } from '../lib/format'
-import type { Automazione, Campagna, Carta, Cliente, DB, Fornitore, Operatore, Passeggero, Pagamento, Pratica, Regime, Servizio, StatoPratica, Rinnovo, StatoServizio, StoricoMese, TipoServizio } from './types'
+import type { Automazione, Campagna, Carta, Cliente, DB, Fornitore, Operatore, Passeggero, Pagamento, Pratica, Regime, Servizio, StatoPratica, StatoServizio, StoricoMese, TipoServizio } from './types'
 
 let n = 0
 const id = (p: string) => `${p}${++n}`
@@ -297,13 +297,6 @@ export function buildInitialDB(): DB {
     }
   }
   const storicoFino = '2026-09-30'
-  const rinnovi: Rinnovo[] = [
-    { id: id('rn'), titolo: 'Polizza assicurativa responsabilità civile dell’agenzia', scadenza: dayOffset(118), note: 'Obbligatoria per le agenzie di viaggio. Compagnia e numero di polizza: da inserire.' },
-    { id: id('rn'), titolo: 'Garanzia per insolvenza o fallimento (pacchetti venduti come organizzatore)', scadenza: dayOffset(205), note: 'Polizza o fideiussione bancaria.' },
-    { id: id('rn'), titolo: 'Firma digitale della titolare', scadenza: dayOffset(41) },
-    { id: id('rn'), titolo: 'Formazione sicurezza sul lavoro dei dipendenti', scadenza: dayOffset(88), note: 'Verificare con il consulente del lavoro o il RSPP.' },
-    { id: id('rn'), titolo: 'Abilitazione del direttore tecnico', note: 'Nessuna scadenza, ma va comunicata ogni variazione.' },
-  ]
 
   const campagne: Campagna[] = [
     { id: id('cm'), nome: 'Auguri di Natale 2025', template: 'natale', oggetto: 'Buone feste da Castruccio Viaggi', testo: '', stato: 'inviata', data: dayOffset(-282), inviati: 10, aperture: 7, click: 1 },
@@ -318,5 +311,5 @@ export function buildInitialDB(): DB {
     { id: id('au'), nome: 'Auguri di compleanno', descrizione: 'Un biglietto di auguri con un piccolo omaggio sul prossimo viaggio.', quando: 'Il giorno del compleanno', attiva: false, inviati30: 0 },
     { id: id('au'), nome: 'Ci siamo persi di vista?', descrizione: 'Proposta personalizzata a chi non viaggia con noi da 12 mesi.', quando: '12 mesi dall’ultimo viaggio', attiva: false, inviati30: 0 },
   ]
-  return { operatori, clienti, fornitori, pratiche, campagne, automazioni, carte, storico, storicoFino, obblighiFatti: [], rinnovi }
+  return { operatori, clienti, fornitori, pratiche, campagne, automazioni, carte, storico, storicoFino }
 }

@@ -3,11 +3,9 @@ import Layout from './components/Layout'
 import ClienteDetail from './pages/ClienteDetail'
 import Clienti from './pages/Clienti'
 import Dashboard from './pages/Dashboard'
-import Fornitori from './pages/Fornitori'
 import Marketing from './pages/Marketing'
 import PraticaDetail from './pages/PraticaDetail'
 import Pratiche from './pages/Pratiche'
-import Obblighi from './pages/Obblighi'
 import Scadenzario from './pages/Scadenzario'
 
 export default function App() {
@@ -21,8 +19,6 @@ export default function App() {
         <Route path="clienti" element={<Clienti />} />
         <Route path="clienti/:id" element={<ClienteDetail />} />
         <Route path="marketing" element={<Marketing />} />
-        <Route path="fornitori" element={<Fornitori />} />
-        <Route path="obblighi" element={<Obblighi />} />
         <Route path="*" element={<Dashboard />} />
       </Route>
     </Routes>

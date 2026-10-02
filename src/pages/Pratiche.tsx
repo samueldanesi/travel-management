@@ -3,10 +3,9 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { MargineTag, PraticaCard, StatoBadge, clienteDi } from '../components/shared'
 import { Card, Empty, Field, Modal, PageHeader, Progress, Segmented } from '../components/ui'
-import type { Pratica, StatoPratica } from '../data/types'
+import type { Cliente, Pratica, Segmento, StatoPratica } from '../data/types'
 import { incassato, STATO_LABEL, totRicavo } from '../lib/calc'
 import { segmentoPratica } from '../lib/segmenti'
-import type { Segmento } from '../data/types'
 import { dayOffset, eur0, fmtDate, uid } from '../lib/format'
 import { useStore } from '../store'
 
@@ -86,8 +85,8 @@ export default function Pratiche() {
       <NuovaPratica
         open={nuova}
         onClose={() => setNuova(false)}
-        onCreate={(p) => {
-          update((d) => ({ ...d, pratiche: [p, ...d.pratiche] }))
+        onCreate={(p, nuovoCliente) => {
+          update((d) => ({ ...d, clienti: nuovoCliente ? [nuovoCliente, ...d.clienti] : d.clienti, pratiche: [p, ...d.pratiche] }))
           setNuova(false)
           nav(`/pratiche/${p.id}`)
         }}
@@ -96,7 +95,7 @@ export default function Pratiche() {
   )
 }
 
-function NuovaPratica({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (p: Pratica) => void }) {
+function NuovaPratica({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (p: Pratica, nuovoCliente?: Cliente) => void }) {
   const { db } = useStore()
   const [clienteId, setClienteId] = useState('')
   const [titolo, setTitolo] = useState('')
@@ -105,30 +104,65 @@ function NuovaPratica({ open, onClose, onCreate }: { open: boolean; onClose: () 
   const [rientro, setRientro] = useState(dayOffset(67))
   const [extraUE, setExtraUE] = useState(false)
   const [operatoreId, setOperatoreId] = useState(db.operatori[0].id)
-  const valido = clienteId && titolo.trim() && destinazione.trim() && partenza && rientro >= partenza
+  // cliente nuovo, creato insieme alla pratica
+  const [nuovo, setNuovo] = useState(false)
+  const [cNome, setCNome] = useState('')
+  const [cTel, setCTel] = useState('')
+  const [cEmail, setCEmail] = useState('')
+  const [cSegmento, setCSegmento] = useState<Segmento>('vacanze')
+  const clienteOk = nuovo ? cNome.trim() && cTel.trim() : clienteId
+  const valido = clienteOk && titolo.trim() && destinazione.trim() && partenza && rientro >= partenza
 
   const crea = () => {
     const anno = new Date().getFullYear()
     const prossimo = db.pratiche.reduce((m, p) => Math.max(m, parseInt(p.codice.split('/')[1], 10) || 0), 0) + 3
+    const cliente: Cliente | undefined = nuovo
+      ? { id: uid('c'), nome: cNome.trim(), segmento: cSegmento, saluto: cNome.trim().split(' ')[0], tel: cTel.trim(), email: cEmail.trim(), citta: '', interessi: [], marketing: false }
+      : undefined
     onCreate({
       id: uid('pr'),
       codice: `${anno}/${String(prossimo).padStart(4, '0')}`,
-      clienteId, operatoreId, titolo: titolo.trim(), destinazione: destinazione.trim(), extraUE,
+      clienteId: cliente?.id ?? clienteId, operatoreId, titolo: titolo.trim(), destinazione: destinazione.trim(), extraUE,
       stato: 'preventivo', partenza, rientro, creata: dayOffset(0), validitaPreventivo: dayOffset(7),
       passeggeri: [], servizi: [], pagamenti: [],
-    })
-    setTitolo(''); setDestinazione(''); setClienteId('')
+    }, cliente)
+    setTitolo(''); setDestinazione(''); setClienteId(''); setNuovo(false); setCNome(''); setCTel(''); setCEmail('')
   }
 
   return (
     <Modal open={open} onClose={onClose} title="Nuova pratica" footer={<><button className="btn-ghost" onClick={onClose}>Annulla</button><button className="btn-brand" disabled={!valido} onClick={crea}>Crea come preventivo</button></>}>
       <div className="space-y-3">
-        <Field label="Cliente">
-          <select className="input" value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
-            <option value="">Seleziona…</option>
-            {db.clienti.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
-          </select>
-        </Field>
+        {nuovo ? (
+          <div className="space-y-3 rounded-lg border border-line-strong bg-canvas/50 p-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">Nuovo cliente</p>
+              <button type="button" className="text-xs font-medium text-brand hover:underline" onClick={() => setNuovo(false)}>Scegli uno esistente</button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {(['vacanze', 'business'] as Segmento[]).map((sg) => (
+                <button key={sg} type="button" onClick={() => setCSegmento(sg)} className={`rounded-lg border px-3 py-2 text-left text-sm transition ${cSegmento === sg ? 'border-brand bg-brand-soft font-semibold text-brand-dark' : 'border-line-strong bg-white text-ink-soft'}`}>
+                  {sg === 'vacanze' ? 'Vacanze' : 'Professionista'}
+                </button>
+              ))}
+            </div>
+            <Field label="Nome e cognome (o ragione sociale)"><input className="input" value={cNome} onChange={(e) => setCNome(e.target.value)} autoFocus /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Telefono"><input type="tel" className="input" value={cTel} onChange={(e) => setCTel(e.target.value)} /></Field>
+              <Field label="Email (facoltativa)"><input type="email" className="input" value={cEmail} onChange={(e) => setCEmail(e.target.value)} /></Field>
+            </div>
+            <p className="text-[11px] text-ink-mute">Gli altri dati (città, interessi, carte, consenso email) si completano dopo, dalla scheda del cliente.</p>
+          </div>
+        ) : (
+          <Field label="Cliente">
+            <div className="flex gap-2">
+              <select className="input" value={clienteId} onChange={(e) => setClienteId(e.target.value)}>
+                <option value="">Seleziona…</option>
+                {db.clienti.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
+              </select>
+              <button type="button" className="btn-ghost shrink-0" onClick={() => setNuovo(true)}>+ Nuovo</button>
+            </div>
+          </Field>
+        )}
         <Field label="Titolo del viaggio"><input className="input" value={titolo} onChange={(e) => setTitolo(e.target.value)} placeholder="Es. Crociera nel Mediterraneo" /></Field>
         <Field label="Destinazione"><input className="input" value={destinazione} onChange={(e) => setDestinazione(e.target.value)} placeholder="Es. Grecia" /></Field>
         <div className="grid grid-cols-2 gap-3">

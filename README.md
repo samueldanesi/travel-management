@@ -11,10 +11,9 @@ I dati sono **fittizi e salvati solo nel browser** (localStorage): è una demo, 
 - **Margine e IVA** per pratica (regime 74-ter sul margine vs intermediazione), stima indicativa
 - **Scadenzario unico**: incassi dai clienti, pagamenti ai fornitori, opzioni/emissioni, documenti, partenze
 - **Controllo documenti**: passaporto con validità insufficiente, carta d'identità dove serve il passaporto
-- **Clienti** divisi tra vacanze e professionisti (con carte di pagamento), **fornitori**
+- **Clienti** divisi tra vacanze e professionisti (con carte di pagamento)
 - **Home finanziaria**: fatturato dell'anno, confronto con gli anni migrati, scoperto da carte
 - **Email marketing** per i clienti vacanze (campagne, automazioni, consenso)
-- **Obblighi fiscali e normative** per una s.a.s. di viaggi: scadenze, ritenuta sulle provvigioni, controlli sui dati
 - **Telefono**: barra in basso, schede touch, pulsanti Chiama / WhatsApp / Email
 
 ## Sviluppo
